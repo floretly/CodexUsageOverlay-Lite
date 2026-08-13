@@ -1,33 +1,125 @@
 # Codex Usage Overlay Lite
 
-面向 Windows Codex 桌面应用的轻量用量悬浮条。它跟随 Codex 窗口显示套餐、用量状态、重置时间、任务状态和可选的公开重置提醒。
+一个面向 Windows Codex 桌面应用的轻量级用量悬浮条。它会跟随 Codex 窗口，在顶部显示常用状态，让你不用离开当前会话就能了解 Codex 的使用情况。
 
-## 特性
+本项目是私有仓库中的个人衍生版本，重点是：界面紧凑、信息直接、安装简单、默认不遮挡 Codex 左侧导航和工作区。
 
-- 顶部紧凑悬浮条，默认最大宽度 520 px，不遮挡 Codex 左侧组件。
-- 从 Codex CLI app-server 读取本地账户与用量信息；读取失败时保留缓存。
-- 支持主题、字体、背景色和刷新间隔设置。
-- 支持 Windows 10/11、当前用户安装、桌面快捷方式和启动项。
-- 提供 `--snapshot` 只读诊断，不输出账户敏感数据到本 README。
+## 产品介绍
+
+Codex Usage Overlay Lite 运行在 Windows 桌面上，不修改 Codex 主程序。它通过 Codex CLI 的本地 `app-server` JSON-RPC 接口读取可验证的账户和用量信息，并将结果绘制成一个置顶的无边框悬浮条。
+
+当 Codex 没有打开、窗口被最小化或当前没有聚焦时，悬浮条会自动隐藏；重新聚焦 Codex 后会恢复显示。如果实时接口暂时不可用，程序会保留最近一次可信的本地缓存，并在诊断结果中标明数据来源。
+
+## 功能
+
+### 顶部用量悬浮条
+
+- 跟随 Codex 窗口移动、最大化和高 DPI 显示变化。
+- 默认最大宽度为 520 px，减少对 Codex 顶部菜单和左侧组件的遮挡。
+- 显示套餐、短周期/周周期剩余状态、重置时间、可用重置券和当前任务状态。
+- 顶部状态会区分检测中、处理中、已完成和中断等任务状态。
+- 可右键主用量区域退出 Overlay；不会关闭 Codex。
+
+### 重置提醒
+
+- 可选显示公开来源的重置提醒卡片。
+- 对来源、时间格式和日期范围进行校验，只接受符合规则的数据。
+- 可选择是否启用 Windows 通知。
+- 该提醒是非官方信息，不代表 OpenAI 承诺，也不保证每个账户同时生效。
+
+### 外观设置
+
+通过悬浮条右侧齿轮打开设置面板，可调整：
+
+- 字体：Microsoft YaHei UI、Segoe UI、SimSun 或 Arial 等安全字体。
+- 主题：荧光蓝、磨砂玻璃、渐变橙、渐变粉、自定义背景和彩色文字。
+- 自定义背景颜色。
+- 自动刷新间隔：5–3600 秒，默认 15 秒。
+- 重置提醒通知开关。
+
+设置保存在安装目录下的 `settings.ini`，覆盖更新时会尽量保留已有设置。
 
 ## 系统要求
 
 - Windows 10 或 Windows 11
 - 系统自带 .NET Framework 4.x
-- 已登录的 Codex 桌面应用或官方 Codex CLI
+- 已安装并登录的 Codex 桌面应用，或已登录的官方 Codex CLI
+- 当前用户对 `%LOCALAPPDATA%` 有写入权限
 
-## 构建
+不需要管理员权限，不需要修改 PowerShell 执行策略，也不需要关闭 Windows 安全功能。
+
+## 安装
+
+### 使用安装包
+
+从本仓库的 Releases 下载：
+
+```text
+CodexUsageOverlay-Lite-Setup-1.0.0.exe
+```
+
+安装包使用当前用户安装，默认路径为：
+
+```text
+%LOCALAPPDATA%\Programs\Codex Usage Overlay Lite\CodexUsageOverlay.exe
+```
+
+安装程序会：
+
+- 创建桌面快捷方式；
+- 创建当前用户启动目录中的自动启动快捷方式；
+- 启动 Overlay；
+- 支持使用新安装包覆盖更新旧版本。
+
+静默安装参数：
 
 ```powershell
+.\CodexUsageOverlay-Lite-Setup-1.0.0.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS
+```
+
+### 从源码构建
+
+项目使用系统自带 .NET Framework 4.x 编译器：
+
+```powershell
+cd .\CodexUsageOverlay-Lite
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\test.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 ```
 
-构建输出位于 `bin\CodexUsageOverlay.exe`。安装器脚本为 `installer.iss`。
+构建输出：
 
-## 连接 Codex
+```text
+bin\CodexUsageOverlay.exe
+```
 
-程序会优先寻找当前用户配置的 `CODEX_CLI_PATH`，然后寻找桌面应用随附的 `codex.exe` 或 PATH 中的 CLI。
+如需生成 Inno Setup 安装包，使用 Inno Setup 编译 `installer.iss`。安装器脚本不会请求管理员权限。
+
+## 首次使用
+
+### 1. 打开并登录 Codex
+
+先启动 Codex 桌面应用并在 Codex 自己的界面完成登录。保持 Codex 窗口打开并聚焦。
+
+### 2. 确认 CLI
+
+在 PowerShell 中检查：
+
+```powershell
+Get-Command codex.exe,codex.cmd -ErrorAction SilentlyContinue
+```
+
+如果 CLI 尚未登录，由用户本人执行：
+
+```powershell
+codex.cmd login --device-auth
+```
+
+设备授权、密码、验证码和设备码必须由用户本人完成，不要将它们发给任何人或写入环境变量。
+
+### 3. 指定 CLI 路径（可选）
+
+如果电脑上同时存在多个 Codex CLI，建议指定实际使用的路径。例如：
 
 ```powershell
 [Environment]::SetEnvironmentVariable(
@@ -35,25 +127,107 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
   "$env:LOCALAPPDATA\hermes\node\codex.cmd",
   "User"
 )
+```
+
+设置后关闭并重新打开 PowerShell，再重启 Overlay：
+
+```powershell
+Stop-Process -Name CodexUsageOverlay -Force -ErrorAction SilentlyContinue
+Start-Process "$env:LOCALAPPDATA\Programs\Codex Usage Overlay Lite\CodexUsageOverlay.exe"
+```
+
+`CODEX_CLI_PATH` 只应包含可执行文件路径，不要在其中写入密码、Token 或设备码。
+
+## 验证连接
+
+运行只读快照：
+
+```powershell
+& "$env:LOCALAPPDATA\Programs\Codex Usage Overlay Lite\CodexUsageOverlay.exe" --snapshot
+```
+
+重点查看以下三项：
+
+```text
+CodexWindow=found
+DataSource=Codex CLI app-server
+LastError=
+```
+
+理想状态是 `CodexWindow=found`、`DataSource=Codex CLI app-server` 且 `LastError` 为空。
+
+如果显示：
+
+```text
+DataSource=缓存
+```
+
+表示实时接口尚未成功读取，程序正在使用最近一次可信缓存。
+
+如果显示：
+
+```text
+LastError=initialize 请求超时
+```
+
+通常表示 CLI 未登录、选择了错误的 CLI 路径、Codex app-server 没有及时响应，或当前网络无法完成登录/授权请求。
+
+## 常见问题
+
+### 悬浮条没有出现
+
+确认：
+
+1. Codex 桌面应用正在运行；
+2. Codex 窗口没有最小化；
+3. 当前点击并聚焦了 Codex 窗口；
+4. `CodexUsageOverlay.exe` 进程存在；
+5. 不是在设置面板或快照命令运行后误判了显示状态。
+
+### 只能看到缓存
+
+依次检查：
+
+```powershell
+Test-Path "$env:LOCALAPPDATA\hermes\node\codex.cmd"
+[Environment]::GetEnvironmentVariable("CODEX_CLI_PATH", "User")
+```
+
+确认 CLI 已登录，再重启 Overlay 并重新执行 `--snapshot`。
+
+### 登录时报网络错误
+
+这是 Codex CLI 到登录服务的网络问题，不是 Overlay 的 UI 问题。请检查本人使用的网络或代理是否允许访问 OpenAI 登录服务，然后由用户本人重新执行：
+
+```powershell
 codex.cmd login --device-auth
 ```
 
-登录和设备授权必须由用户本人完成。不要把密码、令牌、设备码或验证码写入环境变量或提交到仓库。
+不要为了登录而放宽 Windows 安全策略。
 
-## 只读诊断
+### 如何关闭 Overlay
+
+可以右键主用量区域退出，也可以执行：
 
 ```powershell
-.\bin\CodexUsageOverlay.exe --snapshot
+Stop-Process -Name CodexUsageOverlay -Force
 ```
 
-重点查看 `CodexWindow`、`DataSource` 和错误状态；不要分享套餐额度、累计 Token、邮箱或其他账户数据。
+这只会关闭 Overlay，不会关闭 Codex。
 
-## 安全边界
+## 隐私与安全边界
 
-本工具不读取或修改 `~/.codex/auth.json`，不上传 Codex 会话或对话正文，也不关闭或修改 Codex 本体。网络重置提醒仅使用公开的非官方来源，并不代表 OpenAI 官方承诺。
+- 不读取或修改 `~/.codex/auth.json`。
+- 不上传 Codex 会话、对话正文、邮箱、密码、Token 或设备授权信息。
+- 不把凭据写入 `CODEX_CLI_PATH` 或其他环境变量。
+- `--snapshot` 会生成本地 `snapshot.txt`；分享前请自行检查并删除其中的账户字段。
+- 重置提醒只读公开的非官方来源；网络失败时使用本地缓存。
+- 不修改 Codex 本体，不需要管理员权限。
 
 ## 许可证与来源
 
-本项目基于上游 Codex Usage Overlay 的修改版本发布，遵循 GNU Affero General Public License v3.0。原项目和第三方来源说明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)，完整许可证见 [LICENSE](LICENSE)。
+本项目是基于上游 Codex Usage Overlay 的修改版本，遵循 GNU Affero General Public License v3.0。请保留 [LICENSE](LICENSE) 和 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。第三方来源、适配说明和许可证要求以这两个文件为准。
 
-项目地址：[github.com/floretly/CodexUsageOverlay-Lite](https://github.com/floretly/CodexUsageOverlay-Lite)
+仓库为私有仓库：
+
+https://github.com/floretly/CodexUsageOverlay-Lite
