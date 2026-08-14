@@ -93,6 +93,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 bin\CodexUsageOverlay.exe
 ```
 
+构建时还会生成 `bin\CodexUsageOverlayLauncher.exe`。安装后可从桌面打开“Codex Overlay 控制面板”，通过按钮启动 Overlay、重启 Overlay、打开设置或打开安装目录，不需要手动输入 PowerShell 命令。控制面板只管理 Overlay 进程，不会关闭 Codex 桌面应用。
+
 如需生成 Inno Setup 安装包，使用 Inno Setup 编译 `installer.iss`。安装器脚本不会请求管理员权限。
 
 ## 首次使用

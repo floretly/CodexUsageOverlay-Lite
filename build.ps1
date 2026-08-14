@@ -46,5 +46,20 @@ if ($LASTEXITCODE -ne 0) {
     throw "Build failed with exit code $LASTEXITCODE"
 }
 
+& $compiler /nologo /target:winexe /optimize+ /platform:anycpu `
+    "/out:$outputDir\CodexUsageOverlayLauncher.exe" `
+    "/win32icon:$iconPath" `
+    "/win32manifest:$manifestPath" `
+    /reference:System.dll `
+    /reference:System.Drawing.dll `
+    /reference:System.Windows.Forms.dll `
+    (Join-Path $projectRoot 'AssemblyInfo.cs') `
+    (Join-Path $projectRoot 'OverlayLauncher.cs')
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Launcher build failed with exit code $LASTEXITCODE"
+}
+
 Copy-Item -LiteralPath $defaultCachePath -Destination (Join-Path $outputDir 'usage-cache.ini') -Force
 Get-Item -LiteralPath (Join-Path $outputDir 'CodexUsageOverlay.exe')
+Get-Item -LiteralPath (Join-Path $outputDir 'CodexUsageOverlayLauncher.exe')
