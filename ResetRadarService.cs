@@ -219,8 +219,8 @@ namespace CodexUsageOverlay
 
         public ResetRadarService()
         {
-            cachePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "reset-radar-cache.json");
-            statePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "reset-radar-state.ini");
+            cachePath = AppDataPaths.GetFile("reset-radar-cache.json");
+            statePath = AppDataPaths.GetFile("reset-radar-state.ini");
             data = LoadCachedData(cachePath);
             notifiedPostIds = LoadNotifiedPostIds(statePath);
         }

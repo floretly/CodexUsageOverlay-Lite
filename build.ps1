@@ -3,14 +3,12 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $outputDir = Join-Path $projectRoot 'bin'
 $iconPath = Join-Path $projectRoot 'installer-assets\app-icon.ico'
-$defaultCachePath = Join-Path $projectRoot 'installer-assets\usage-cache.ini'
 $manifestPath = Join-Path $projectRoot 'app.manifest'
 $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 if (-not (Test-Path -LiteralPath $compiler)) {
     throw "Missing .NET Framework compiler: $compiler"
 }
 if (-not (Test-Path -LiteralPath $iconPath) -or
-    -not (Test-Path -LiteralPath $defaultCachePath) -or
     -not (Test-Path -LiteralPath $manifestPath)) {
     throw 'Missing installer asset.'
 }
@@ -27,6 +25,7 @@ New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
     /reference:System.Web.Extensions.dll `
     /reference:System.Windows.Forms.dll `
     (Join-Path $projectRoot 'AssemblyInfo.cs') `
+    (Join-Path $projectRoot 'AppDataPaths.cs') `
     (Join-Path $projectRoot 'UiRendering.cs') `
     (Join-Path $projectRoot 'OverlayInteraction.cs') `
     (Join-Path $projectRoot 'UsageData.cs') `
@@ -57,6 +56,5 @@ if ($LASTEXITCODE -ne 0) {
     throw "Launcher build failed with exit code $LASTEXITCODE"
 }
 
-Copy-Item -LiteralPath $defaultCachePath -Destination (Join-Path $outputDir 'usage-cache.ini') -Force
 Get-Item -LiteralPath (Join-Path $outputDir 'CodexUsageOverlay.exe')
 Get-Item -LiteralPath (Join-Path $outputDir 'CodexUsageOverlayLauncher.exe')

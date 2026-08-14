@@ -29,7 +29,6 @@ UninstallDisplayIcon={app}\{#MyAppExeName}
 [Files]
 Source: "bin\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "bin\{#MyLauncherExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "installer-assets\usage-cache.ini"; DestDir: "{app}"; Flags: onlyifdoesntexist
 Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 Source: "THIRD_PARTY_NOTICES.md"; DestDir: "{app}"; Flags: ignoreversion
 

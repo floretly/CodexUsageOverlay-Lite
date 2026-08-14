@@ -26,7 +26,7 @@ namespace CodexUsageOverlay
     {
         private static string SettingsPath
         {
-            get { return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.ini"); }
+            get { return AppDataPaths.GetFile("settings.ini"); }
         }
 
         public static OverlaySettings Load()

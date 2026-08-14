@@ -18,6 +18,7 @@ namespace CodexUsageOverlay
         [STAThread]
         private static int Main(string[] args)
         {
+            AppDataPaths.MigrateLegacyFiles();
             bool snapshot = Array.IndexOf(args, "--snapshot") >= 0;
             bool radarSnapshot = Array.IndexOf(args, "--reset-radar-snapshot") >= 0;
             bool settingsOnly = Array.IndexOf(args, "--settings") >= 0;
@@ -51,7 +52,7 @@ namespace CodexUsageOverlay
                         "RadarLastError=" + radar.LastError
                     };
                     foreach (string line in report) Console.WriteLine(line);
-                    File.WriteAllLines(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "reset-radar-snapshot.txt"), report, new UTF8Encoding(false));
+                    File.WriteAllLines(AppDataPaths.GetFile("reset-radar-snapshot.txt"), report, new UTF8Encoding(false));
                     return refreshed ? 0 : 1;
                 }
             }
@@ -101,7 +102,7 @@ namespace CodexUsageOverlay
                         "LastError=" + data.LastError
                     };
                     foreach (string line in report) Console.WriteLine(line);
-                    File.WriteAllLines(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "snapshot.txt"), report, new UTF8Encoding(false));
+                    File.WriteAllLines(AppDataPaths.GetFile("snapshot.txt"), report, new UTF8Encoding(false));
                     return refreshed ? 0 : 1;
                 }
 
@@ -131,7 +132,7 @@ namespace CodexUsageOverlay
 
         public UsageService()
         {
-            cachePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "usage-cache.ini");
+            cachePath = AppDataPaths.GetFile("usage-cache.ini");
             data = CacheStore.Load(cachePath);
         }
 

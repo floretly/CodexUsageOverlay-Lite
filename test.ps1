@@ -13,6 +13,7 @@ New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
     /reference:System.Drawing.dll `
     /reference:System.Web.Extensions.dll `
     /reference:System.Windows.Forms.dll `
+    (Join-Path $projectRoot 'AppDataPaths.cs') `
     (Join-Path $projectRoot 'UiRendering.cs') `
     (Join-Path $projectRoot 'OverlayInteraction.cs') `
     (Join-Path $projectRoot 'UsageData.cs') `
