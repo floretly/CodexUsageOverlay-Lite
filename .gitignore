@@ -2,6 +2,8 @@
 .tools/
 bin/
 tests/bin/
+tmp/
+installer-assets/app-icon-new.png
 
 # Local runtime data
 /usage-cache.ini
