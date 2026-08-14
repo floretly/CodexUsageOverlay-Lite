@@ -25,6 +25,7 @@ New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
     /reference:System.Web.Extensions.dll `
     /reference:System.Windows.Forms.dll `
     (Join-Path $projectRoot 'AssemblyInfo.cs') `
+    (Join-Path $projectRoot 'ProductInfo.cs') `
     (Join-Path $projectRoot 'AppDataPaths.cs') `
     (Join-Path $projectRoot 'UiRendering.cs') `
     (Join-Path $projectRoot 'OverlayInteraction.cs') `
@@ -35,7 +36,6 @@ New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
     (Join-Path $projectRoot 'OverlaySettings.cs') `
     (Join-Path $projectRoot 'ResetRadarService.cs') `
     (Join-Path $projectRoot 'ResetRadarBannerForm.cs') `
-    (Join-Path $projectRoot 'CodexTaskStatusMonitor.cs') `
     (Join-Path $projectRoot 'CodexAppServerClient.cs')
 
 if ($LASTEXITCODE -ne 0) {

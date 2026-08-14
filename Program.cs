@@ -30,7 +30,7 @@ namespace CodexUsageOverlay
                     previewOutput = argument.Substring(previewPrefix.Length).Trim('"');
             }
             if (snapshot || radarSnapshot)
-                NativeMethods.AttachConsole(NativeMethods.ATTACH_PARENT_PROCESS);
+                AttachDiagnosticConsole();
 
             if (radarSnapshot)
             {
@@ -90,16 +90,7 @@ namespace CodexUsageOverlay
                     {
                         String.Format(CultureInfo.InvariantCulture, "CodexWindow={0}", window != IntPtr.Zero ? "found" : "not-found"),
                         "DataSource=" + data.Source,
-                        "Plan=" + data.Plan,
-                        "ShortRemaining=" + (data.ShortRemaining.HasValue ? data.ShortRemaining.Value.ToString(CultureInfo.InvariantCulture) : "unknown"),
-                        "ShortReset=" + data.ShortResetText,
-                        "WeeklyRemaining=" + (data.WeeklyRemaining.HasValue ? data.WeeklyRemaining.Value.ToString(CultureInfo.InvariantCulture) : "unknown"),
-                        "WeeklyReset=" + data.WeeklyResetText,
-                        "RateLimitStatus=" + data.RateLimitStatus,
-                        "AvailableResetCredits=" + (data.AvailableResetCredits.HasValue ? data.AvailableResetCredits.Value.ToString(CultureInfo.InvariantCulture) : "unknown"),
-                        "LifetimeTokens=" + (data.LifetimeTokens.HasValue ? data.LifetimeTokens.Value.ToString(CultureInfo.InvariantCulture) : "unknown"),
-                        "ProfileTokensText=" + data.ProfileTokensText,
-                        "LastError=" + data.LastError
+                        "Error=" + (String.IsNullOrWhiteSpace(data.LastError) ? "none" : "present")
                     };
                     foreach (string line in report) Console.WriteLine(line);
                     File.WriteAllLines(AppDataPaths.GetFile("snapshot.txt"), report, new UTF8Encoding(false));
@@ -118,6 +109,20 @@ namespace CodexUsageOverlay
                 }
             }
             return 0;
+        }
+
+        private static void AttachDiagnosticConsole()
+        {
+            NativeMethods.AttachConsole(NativeMethods.ATTACH_PARENT_PROCESS);
+            try
+            {
+                Stream output = Console.OpenStandardOutput();
+                Console.SetOut(new StreamWriter(output, new UTF8Encoding(false)) { AutoFlush = true });
+            }
+            catch
+            {
+                // The report is also written to the private app-data directory.
+            }
         }
     }
 
@@ -220,12 +225,10 @@ namespace CodexUsageOverlay
         private bool radarHovered;
         private OverlaySettings draftSettings;
         private readonly string[] fontOptions;
-        private readonly CodexTaskStatusMonitor taskStatusMonitor;
         private readonly NotifyIcon resetNotifyIcon;
         private readonly GitHubReleaseUpdateService releaseUpdateService;
         private readonly NotifyIcon releaseUpdateNotifyIcon;
         private readonly ResetRadarBannerForm resetRadarBanner;
-        private CodexTaskState taskState = CodexTaskState.Unknown;
         private ResetRadarData resetRadar = new ResetRadarData();
         private string lastRadarRevision = String.Empty;
         private string lastRadarClockRevision = String.Empty;
@@ -250,7 +253,6 @@ namespace CodexUsageOverlay
             this.settings = settings;
             settingsRevision = OverlaySettingsStore.GetRevision();
             fontOptions = BuildFontOptions(settings.FontName);
-            taskStatusMonitor = new CodexTaskStatusMonitor();
             resetRadarService = new ResetRadarService();
             resetRadar = resetRadarService.Snapshot();
             resetNotifyIcon = new NotifyIcon();
@@ -285,7 +287,6 @@ namespace CodexUsageOverlay
             if (disposing)
             {
                 timer.Dispose();
-                taskStatusMonitor.Dispose();
                 resetRadarService.Dispose();
                 releaseUpdateService.Dispose();
                 resetRadarBanner.Dispose();
@@ -414,9 +415,6 @@ namespace CodexUsageOverlay
             service.RequestRefresh(settings.RefreshSeconds, false);
 
             UsageData usage = service.Snapshot();
-            CodexTaskState newTaskState = taskStatusMonitor.Snapshot();
-            bool taskStateChanged = newTaskState != taskState;
-            taskState = newTaskState;
             int textWidth = Math.Max(40, ResetRadarBounds.Left - 14);
             displayText = BuildDisplayText(usage, textWidth);
             bool scheduledRadar = resetRadar.Status == ResetRadarStatus.ScheduledToday ||
@@ -428,7 +426,7 @@ namespace CodexUsageOverlay
                 radarClockRevision,
                 lastRadarClockRevision,
                 StringComparison.Ordinal);
-            if (becameVisible || boundsChanged || dpiChanged || taskStateChanged || radarChanged ||
+            if (becameVisible || boundsChanged || dpiChanged || radarChanged ||
                 radarClockChanged || !String.Equals(displayText, lastRenderedText, StringComparison.Ordinal))
             {
                 RenderLayered();
@@ -647,7 +645,6 @@ namespace CodexUsageOverlay
                     format.FormatFlags |= StringFormatFlags.NoWrap;
                     Rectangle gear = GearBounds;
                     Rectangle radar = ResetRadarBounds;
-                    Rectangle status = TaskStatusBounds;
                     RectangleF box = MainUsageBounds;
 
                     int glowRadius = settingsExpanded ? 1 : 2;
@@ -668,7 +665,6 @@ namespace CodexUsageOverlay
                         graphics.DrawString(displayText, font, text, box, format);
 
                     DrawResetRadar(graphics, resetRadar, visualSettings);
-                    DrawTaskStatus(graphics, taskState);
 
                     if (gearHovered || gearPressed)
                     {
@@ -706,7 +702,6 @@ namespace CodexUsageOverlay
             OverlaySettings originalDraft = draftSettings;
             string originalText = displayText;
             bool originalExpanded = settingsExpanded;
-            CodexTaskState originalTaskState = taskState;
             ResetRadarData originalResetRadar = resetRadar;
             DateTimeOffset? originalResetRadarDisplayNow = resetRadarDisplayNow;
             float originalDpiScale = dpiScale;
@@ -716,7 +711,6 @@ namespace CodexUsageOverlay
             try
             {
                 displayText = "PRO | 周用量剩余：58%·8月16日11:24重置 | 重置券：2 | 累计Token：3.5亿";
-                taskState = CodexTaskState.Completed;
                 resetRadar = new ResetRadarData
                 {
                     Status = ResetRadarStatus.ScheduledToday,
@@ -766,7 +760,6 @@ namespace CodexUsageOverlay
                 draftSettings = originalDraft;
                 displayText = originalText;
                 settingsExpanded = originalExpanded;
-                taskState = originalTaskState;
                 resetRadar = originalResetRadar;
                 resetRadarDisplayNow = originalResetRadarDisplayNow;
                 dpiScale = originalDpiScale;
@@ -961,17 +954,12 @@ namespace CodexUsageOverlay
             get { return new Rectangle(Math.Max(0, CanvasWidth - 34), 2, 30, HeaderHeight - 4); }
         }
 
-        private Rectangle TaskStatusBounds
-        {
-            get { return new Rectangle(Math.Max(0, GearBounds.Left - 50), 5, 44, 18); }
-        }
-
         private Rectangle ResetRadarBounds
         {
             get
             {
                 int width = CanvasWidth < 500 ? 22 : 104;
-                return new Rectangle(Math.Max(0, TaskStatusBounds.Left - width - 6), 5, width, 18);
+                return new Rectangle(Math.Max(0, GearBounds.Left - width - 6), 5, width, 18);
             }
         }
 
@@ -1058,56 +1046,6 @@ namespace CodexUsageOverlay
                 fill = Color.FromArgb(185, 82, 92, 104);
                 border = Color.FromArgb(220, 157, 169, 181);
                 dot = Color.FromArgb(255, 190, 201, 212);
-            }
-        }
-
-        private void DrawTaskStatus(Graphics graphics, CodexTaskState state)
-        {
-            string label = "检测中";
-            Color fill = Color.FromArgb(175, 92, 105, 118);
-            Color border = Color.FromArgb(220, 164, 177, 190);
-            if (state == CodexTaskState.Processing)
-            {
-                label = "处理中";
-                fill = Color.FromArgb(220, 15, 126, 214);
-                border = Color.FromArgb(255, 104, 210, 255);
-            }
-            else if (state == CodexTaskState.Completed)
-            {
-                label = "完成";
-                fill = Color.FromArgb(220, 32, 155, 94);
-                border = Color.FromArgb(255, 126, 240, 171);
-            }
-            else if (state == CodexTaskState.Interrupted)
-            {
-                label = "中断";
-                fill = Color.FromArgb(225, 196, 58, 68);
-                border = Color.FromArgb(255, 255, 151, 158);
-            }
-
-            using (GraphicsPath path = RoundedRectangle(TaskStatusBounds, 4))
-            using (Brush background = new SolidBrush(fill))
-            using (Pen outline = new Pen(border, 1f))
-            using (Font statusFont = new Font("Microsoft YaHei UI", 7.25f, FontStyle.Bold, GraphicsUnit.Point))
-            using (Brush statusText = new SolidBrush(Color.White))
-            using (GraphicsPath textPath = new GraphicsPath())
-            using (StringFormat typographic = (StringFormat)StringFormat.GenericTypographic.Clone())
-            {
-                graphics.FillPath(background, path);
-                graphics.DrawPath(outline, path);
-
-                float emSize = statusFont.SizeInPoints * graphics.DpiY / 72f;
-                textPath.AddString(label, statusFont.FontFamily, (int)statusFont.Style,
-                    emSize, PointF.Empty, typographic);
-                RectangleF textBounds = textPath.GetBounds();
-                using (Matrix centerText = new Matrix())
-                {
-                    centerText.Translate(
-                        TaskStatusBounds.Left + (TaskStatusBounds.Width - textBounds.Width) / 2f - textBounds.Left,
-                        TaskStatusBounds.Top + (TaskStatusBounds.Height - textBounds.Height) / 2f - textBounds.Top);
-                    textPath.Transform(centerText);
-                }
-                graphics.FillPath(statusText, textPath);
             }
         }
 

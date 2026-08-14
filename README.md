@@ -17,7 +17,6 @@ Codex Usage Overlay Lite 运行在 Windows 桌面上，不修改 Codex 主程序
 - 跟随 Codex 窗口移动、最大化和高 DPI 显示变化。
 - 默认最大宽度为 520 px，减少对 Codex 顶部菜单和左侧组件的遮挡。
 - 显示套餐、短周期/周周期剩余状态、重置时间、可用重置券和当前任务状态。
-- 顶部状态会区分检测中、处理中、已完成和中断等任务状态。
 - 可右键主用量区域退出 Overlay；不会关闭 Codex。
 
 ### 重置提醒
@@ -37,7 +36,7 @@ Codex Usage Overlay Lite 运行在 Windows 桌面上，不修改 Codex 主程序
 - 自动刷新间隔：5–3600 秒，默认 15 秒。
 - 重置提醒通知开关。
 
-设置保存在安装目录下的 `settings.ini`，覆盖更新时会尽量保留已有设置。
+设置保存在 `%LOCALAPPDATA%\Codex Usage Overlay Lite\settings.ini`，覆盖更新时会尽量保留已有设置。
 
 ## 系统要求
 
@@ -55,10 +54,10 @@ Codex Usage Overlay Lite 运行在 Windows 桌面上，不修改 Codex 主程序
 从本仓库的 [Releases](https://github.com/floretly/CodexUsageOverlay-Lite/releases) 下载当前安装包：
 
 直接下载：
-https://github.com/floretly/CodexUsageOverlay-Lite/releases/download/v1.0.0/CodexUsageOverlay-Lite-Setup-1.0.0.exe
+https://github.com/floretly/CodexUsageOverlay-Lite/releases/download/v1.0.1/CodexUsageOverlay-Lite-Setup-1.0.1.exe
 
 ```text
-CodexUsageOverlay-Lite-Setup-1.0.0.exe
+CodexUsageOverlay-Lite-Setup-1.0.1.exe
 ```
 
 SHA-256 校验值在同一 Release 的 `SHA256SUMS.txt` 中。
@@ -79,7 +78,7 @@ SHA-256 校验值在同一 Release 的 `SHA256SUMS.txt` 中。
 静默安装参数：
 
 ```powershell
-.\CodexUsageOverlay-Lite-Setup-1.0.0.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS
+.\CodexUsageOverlay-Lite-Setup-1.0.1.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS
 ```
 
 ### 从源码构建
@@ -158,26 +157,12 @@ Start-Process "$env:LOCALAPPDATA\Programs\Codex Usage Overlay Lite\CodexUsageOve
 ```text
 CodexWindow=found
 DataSource=Codex CLI app-server
-LastError=
+Error=none
 ```
 
-理想状态是 `CodexWindow=found`、`DataSource=Codex CLI app-server` 且 `LastError` 为空。
+理想状态是 `CodexWindow=found`、`DataSource=Codex CLI app-server` 且 `Error=none`。
 
-如果显示：
-
-```text
-DataSource=缓存
-```
-
-表示实时接口尚未成功读取，程序正在使用最近一次可信缓存。
-
-如果显示：
-
-```text
-LastError=initialize 请求超时
-```
-
-通常表示 CLI 未登录、选择了错误的 CLI 路径、Codex app-server 没有及时响应，或当前网络无法完成登录/授权请求。
+如果显示 `DataSource=缓存`，表示实时接口尚未成功读取，程序正在使用最近一次可信缓存；如果显示 `Error=present`，请检查 CLI 登录状态、`CODEX_CLI_PATH` 和网络连接。
 
 ## 常见问题
 
@@ -227,7 +212,8 @@ Stop-Process -Name CodexUsageOverlay -Force
 - 不读取或修改 `~/.codex/auth.json`。
 - 不上传 Codex 会话、对话正文、邮箱、密码、Token 或设备授权信息。
 - 不把凭据写入 `CODEX_CLI_PATH` 或其他环境变量。
-- `--snapshot` 会生成本地 `snapshot.txt`；分享前请自行检查并删除其中的账户字段。
+- `--snapshot` 只输出 `CodexWindow`、`DataSource` 和错误存在性，不写入套餐、额度、邮箱或 Token 字段。
+- 不读取 `.codex\sessions`，不扫描或保存 Codex 对话正文。
 - 重置提醒只读公开的非官方来源；网络失败时使用本地缓存。
 - 不修改 Codex 本体，不需要管理员权限。
 

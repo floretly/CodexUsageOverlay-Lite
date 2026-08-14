@@ -23,7 +23,7 @@ namespace CodexUsageOverlay
 
     internal sealed class GitHubReleaseUpdateService : IDisposable
     {
-        public const string CurrentVersion = "1.0.0";
+        public const string CurrentVersion = ProductInfo.Version;
         public const string LatestReleaseUrl =
             "https://github.com/floretly/CodexUsageOverlay-Lite/releases/latest";
 
