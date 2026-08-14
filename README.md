@@ -52,11 +52,16 @@ Codex Usage Overlay Lite 运行在 Windows 桌面上，不修改 Codex 主程序
 
 ### 使用安装包
 
-从本仓库的 Releases 下载：
+从本仓库的 [Releases](https://github.com/floretly/CodexUsageOverlay-Lite/releases) 下载当前安装包：
+
+直接下载：
+https://github.com/floretly/CodexUsageOverlay-Lite/releases/download/v1.0.0/CodexUsageOverlay-Lite-Setup-1.0.0.exe
 
 ```text
 CodexUsageOverlay-Lite-Setup-1.0.0.exe
 ```
+
+SHA-256 校验值在同一 Release 的 `SHA256SUMS.txt` 中。
 
 安装包使用当前用户安装，默认路径为：
 
