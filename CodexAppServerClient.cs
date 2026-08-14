@@ -10,7 +10,9 @@ namespace CodexUsageOverlay
 {
     internal sealed class CodexAppServerClient : IDisposable
     {
-        private const int RequestTimeoutMilliseconds = 8000;
+        // The first app-server request can be slower while the CLI initializes
+        // its local state or refreshes the model catalog.
+        private const int RequestTimeoutMilliseconds = 30000;
         private readonly object gate = new object();
         private readonly JavaScriptSerializer json = new JavaScriptSerializer();
         private Process process;
@@ -65,9 +67,7 @@ namespace CodexUsageOverlay
 
             ResetProcess();
             outputLines = new BlockingCollection<string>();
-            ProcessStartInfo startInfo = new ProcessStartInfo();
-            startInfo.FileName = ResolveCodexExecutable();
-            startInfo.Arguments = "app-server";
+            ProcessStartInfo startInfo = CreateStartInfo(ResolveCodexExecutable());
             startInfo.UseShellExecute = false;
             startInfo.CreateNoWindow = true;
             startInfo.WindowStyle = ProcessWindowStyle.Hidden;
@@ -463,8 +463,9 @@ namespace CodexUsageOverlay
         private static string ResolveCodexExecutable()
         {
             string configured = Environment.GetEnvironmentVariable("CODEX_CLI_PATH");
-            if (!String.IsNullOrWhiteSpace(configured) && File.Exists(configured))
-                return configured;
+            string configuredExecutable = ResolveConfiguredExecutable(configured);
+            if (!String.IsNullOrWhiteSpace(configuredExecutable))
+                return configuredExecutable;
 
             string besideOverlay = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "codex.exe");
             if (File.Exists(besideOverlay))
@@ -530,6 +531,53 @@ namespace CodexUsageOverlay
                 finally { chatGpt.Dispose(); }
             }
             return "codex.exe";
+        }
+
+        private static string ResolveConfiguredExecutable(string configured)
+        {
+            if (String.IsNullOrWhiteSpace(configured) || !File.Exists(configured))
+                return null;
+
+            if (!String.Equals(Path.GetExtension(configured), ".cmd",
+                StringComparison.OrdinalIgnoreCase))
+                return configured;
+
+            string scriptDirectory = Path.GetDirectoryName(configured);
+            string[] nativeCandidates = new[]
+            {
+                Path.Combine(scriptDirectory, "node_modules", "@openai", "codex", "node_modules",
+                    "@openai", "codex-win32-x64", "vendor", "x86_64-pc-windows-msvc", "bin", "codex.exe"),
+                Path.Combine(scriptDirectory, "node_modules", "@openai", "codex", "node_modules",
+                    "@openai", "codex-win32-arm64", "vendor", "aarch64-pc-windows-msvc", "bin", "codex.exe")
+            };
+            foreach (string nativeCandidate in nativeCandidates)
+            {
+                if (File.Exists(nativeCandidate))
+                    return nativeCandidate;
+            }
+
+            // Keep the script as a fallback; CreateStartInfo launches it through
+            // cmd.exe because ProcessStartInfo cannot execute .cmd directly
+            // with UseShellExecute=false.
+            return configured;
+        }
+
+        private static ProcessStartInfo CreateStartInfo(string executable)
+        {
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+            if (String.Equals(Path.GetExtension(executable), ".cmd",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                string commandShell = Environment.GetEnvironmentVariable("ComSpec");
+                startInfo.FileName = String.IsNullOrWhiteSpace(commandShell) ? "cmd.exe" : commandShell;
+                startInfo.Arguments = "/d /c \"\"" + executable + "\" app-server\"";
+            }
+            else
+            {
+                startInfo.FileName = executable;
+                startInfo.Arguments = "app-server";
+            }
+            return startInfo;
         }
 
         private void ResetProcess()
