@@ -243,8 +243,10 @@ namespace CodexUsageOverlay
 
         private const int HeaderHeight = 28;
         private const int ExpandedHeight = 236;
-        // Keep the collapsed overlay compact so it does not cover Codex's top controls.
-        private const int MaxOverlayWidth = 520;
+        // Keep the left edge close to the old compact layout while allowing the
+        // right side to expand enough for the reset time and quota details.
+        private const int CompactOverlayWidth = 520;
+        private const int MaxOverlayWidth = 680;
         private const string RunwayPageUrl = "https://www.codexrunway.com/zh.html";
 
         public OverlayForm(UsageService service, OverlaySettings settings)
@@ -371,7 +373,10 @@ namespace CodexUsageOverlay
             dpiScale = newDpiScale;
             int availableWidth = Math.Max(ScalePixels(240), windowWidth - ScalePixels(32));
             int overlayWidth = Math.Min(ScalePixels(MaxOverlayWidth), availableWidth);
-            int overlayLeft = rect.Left + (windowWidth - overlayWidth) / 2;
+            int compactWidth = Math.Min(ScalePixels(CompactOverlayWidth), availableWidth);
+            int overlayLeft = rect.Left + (windowWidth - compactWidth) / 2;
+            if (overlayLeft + overlayWidth > rect.Right)
+                overlayLeft = Math.Max(rect.Left, rect.Right - overlayWidth);
             int titleBarHeight = ScalePixels(36);
             int overlayHeight = ScalePixels(settingsExpanded ? ExpandedHeight : HeaderHeight);
             Screen targetScreen = Screen.FromHandle(codexWindow);

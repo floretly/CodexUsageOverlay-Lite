@@ -15,7 +15,7 @@ Codex Usage Overlay Lite 运行在 Windows 桌面上，不修改 Codex 主程序
 ### 顶部用量悬浮条
 
 - 跟随 Codex 窗口移动、最大化和高 DPI 显示变化。
-- 默认最大宽度为 520 px，减少对 Codex 顶部菜单和左侧组件的遮挡。
+- 默认最大宽度为 680 px，左侧位置保持紧凑布局，新增空间主要向右扩展，减少对 Codex 左侧组件的遮挡。
 - 显示套餐、周用量剩余、周重置时间（接口暂时没有周时间时回退显示短周期重置时间）和可用重置券。
 - 可右键主用量区域退出 Overlay；不会关闭 Codex。
 
@@ -54,10 +54,10 @@ Codex Usage Overlay Lite 运行在 Windows 桌面上，不修改 Codex 主程序
 从本仓库的 [Releases](https://github.com/floretly/CodexUsageOverlay-Lite/releases) 下载当前安装包：
 
 直接下载：
-https://github.com/floretly/CodexUsageOverlay-Lite/releases/download/v1.0.2/CodexUsageOverlay-Lite-Setup-1.0.2.exe
+https://github.com/floretly/CodexUsageOverlay-Lite/releases/download/v1.0.3/CodexUsageOverlay-Lite-Setup-1.0.3.exe
 
 ```text
-CodexUsageOverlay-Lite-Setup-1.0.2.exe
+CodexUsageOverlay-Lite-Setup-1.0.3.exe
 ```
 
 SHA-256 校验值在同一 Release 的 `SHA256SUMS.txt` 中。
@@ -78,7 +78,7 @@ SHA-256 校验值在同一 Release 的 `SHA256SUMS.txt` 中。
 静默安装参数：
 
 ```powershell
-.\CodexUsageOverlay-Lite-Setup-1.0.2.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS
+.\CodexUsageOverlay-Lite-Setup-1.0.3.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS
 ```
 
 ### 从源码构建
