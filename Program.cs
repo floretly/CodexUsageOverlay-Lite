@@ -440,6 +440,7 @@ namespace CodexUsageOverlay
             string planLabel = usage.Plan.ToUpperInvariant();
             bool hasQuotaData = usage.RateLimitStatus != "待刷新";
             string weeklyRemaining = FormatRemaining(usage.WeeklyRemaining, hasQuotaData);
+            string quotaReset = BuildQuotaResetText(usage);
             string tokensText = !String.IsNullOrWhiteSpace(usage.ProfileTokensText)
                 ? usage.ProfileTokensText
                 : "待刷新";
@@ -448,7 +449,7 @@ namespace CodexUsageOverlay
             sections.Add(planLabel);
             if (availableTextWidth >= 500)
             {
-                sections.Add("周用量剩余：" + weeklyRemaining + "·" + FormatResetText(usage.WeeklyResetText));
+                sections.Add("周用量剩余：" + weeklyRemaining + "·" + quotaReset);
                 if (IsAbnormalRateLimitStatus(usage.RateLimitStatus))
                     sections.Add("状态：" + usage.RateLimitStatus);
                 if (usage.AvailableResetCredits.HasValue)
@@ -462,6 +463,7 @@ namespace CodexUsageOverlay
                 sections.Clear();
                 sections.Add(planLabel);
                 sections.Add("周用量剩余：" + weeklyRemaining);
+                sections.Add(quotaReset);
                 if (usage.AvailableResetCredits.HasValue)
                     sections.Add("重置券：" + usage.AvailableResetCredits.Value.ToString(CultureInfo.InvariantCulture));
                 sections.Add("累计Token：" + tokensText);
@@ -469,12 +471,28 @@ namespace CodexUsageOverlay
             }
 
             sections.Add("周用量剩余：" + weeklyRemaining);
+            sections.Add(quotaReset);
             if (IsAbnormalRateLimitStatus(usage.RateLimitStatus))
                 sections.Add(usage.RateLimitStatus);
             if (usage.AvailableResetCredits.HasValue)
                 sections.Add("重置券：" + usage.AvailableResetCredits.Value.ToString(CultureInfo.InvariantCulture));
             sections.Add("累计Token：" + tokensText);
             return String.Join(" | ", sections.ToArray());
+        }
+
+        private static string BuildQuotaResetText(UsageData usage)
+        {
+            if (HasResetText(usage.WeeklyResetText))
+                return "周重置：" + FormatResetText(usage.WeeklyResetText);
+            if (HasResetText(usage.ShortResetText))
+                return "短期重置：" + FormatResetText(usage.ShortResetText);
+            return "周重置：待刷新";
+        }
+
+        private static bool HasResetText(string resetText)
+        {
+            return !String.IsNullOrWhiteSpace(resetText) &&
+                resetText != "—" && resetText != "待刷新";
         }
 
         private static string FormatRemaining(int? remaining, bool hasQuotaData)
