@@ -313,13 +313,13 @@ namespace CodexUsageOverlay
                     graphics.DrawString(detail, detailFont, detailBrush, detailBounds, detailFormat);
                 }
 
-                if (closeHovered)
                 {
                     Rectangle closeButton = new Rectangle(Math.Max(2, canvasWidth - 25), 4, 18, 18);
                     using (GraphicsPath closePath = RoundedRectangle(closeButton, 6))
-                    using (Brush closeBackground = new SolidBrush(Color.FromArgb(236, 222, 57, 67)))
-                    using (Pen closePen = new Pen(Color.White, 1.8f))
-                    {
+                    using (Brush closeBackground = new SolidBrush(Color.FromArgb(
+                        closeHovered ? 236 : 92, 222, 57, 67)))
+                    using (Pen closePen = new Pen(Color.FromArgb(closeHovered ? 255 : 190, 255, 255, 255), 1.8f))
+                {
                         closePen.StartCap = LineCap.Round;
                         closePen.EndCap = LineCap.Round;
                         graphics.FillPath(closeBackground, closePath);
@@ -327,8 +327,8 @@ namespace CodexUsageOverlay
                             closeButton.Right - 5, closeButton.Bottom - 5);
                         graphics.DrawLine(closePen, closeButton.Right - 5, closeButton.Top + 5,
                             closeButton.Left + 5, closeButton.Bottom - 5);
-                    }
                 }
+            }
             }
             return bitmap;
         }
@@ -346,7 +346,7 @@ namespace CodexUsageOverlay
 
         private static Rectangle CloseHitBounds(int canvasWidth)
         {
-            return new Rectangle(Math.Max(0, canvasWidth - 34), 0, 34, 27);
+            return new Rectangle(Math.Max(0, canvasWidth - 56), 0, 56, 30);
         }
 
         private static void ResolveSurface(

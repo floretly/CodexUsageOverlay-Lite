@@ -15,6 +15,7 @@ namespace CodexUsageOverlay
         public int CustomBackgroundArgb = Color.FromArgb(24, 99, 171).ToArgb();
         public int RefreshSeconds = 15;
         public bool ResetNotificationsEnabled;
+        public string DismissedRadarEventId = String.Empty;
 
         public OverlaySettings Clone()
         {
@@ -51,6 +52,7 @@ namespace CodexUsageOverlay
                     else if (key == "CustomBackgroundArgb" && Int32.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out number)) settings.CustomBackgroundArgb = number;
                     else if (key == "RefreshSeconds" && Int32.TryParse(value, out number)) settings.RefreshSeconds = Math.Max(5, Math.Min(3600, number));
                     else if (key == "ResetNotificationsEnabled" && Boolean.TryParse(value, out enabled)) settings.ResetNotificationsEnabled = enabled;
+                    else if (key == "DismissedRadarEventId") settings.DismissedRadarEventId = value;
                 }
             }
             catch
@@ -88,7 +90,8 @@ namespace CodexUsageOverlay
                     "Theme=" + settings.Theme,
                     "CustomBackgroundArgb=" + settings.CustomBackgroundArgb.ToString(CultureInfo.InvariantCulture),
                     "RefreshSeconds=" + settings.RefreshSeconds.ToString(CultureInfo.InvariantCulture),
-                    "ResetNotificationsEnabled=" + settings.ResetNotificationsEnabled.ToString(CultureInfo.InvariantCulture)
+                    "ResetNotificationsEnabled=" + settings.ResetNotificationsEnabled.ToString(CultureInfo.InvariantCulture),
+                    "DismissedRadarEventId=" + settings.DismissedRadarEventId
                 };
                 File.WriteAllLines(temporary, lines, new UTF8Encoding(false));
                 if (File.Exists(SettingsPath)) File.Delete(SettingsPath);

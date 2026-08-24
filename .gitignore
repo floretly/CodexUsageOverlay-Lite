@@ -19,7 +19,7 @@ installer-assets/app-icon-new.png
 
 # Keep only the current distributable installer
 /dist/*
-!/dist/CodexUsageOverlay-Lite-Setup-1.0.4.exe
+!/dist/CodexUsageOverlay-Lite-Setup-1.0.5.exe
 !/dist/SHA256SUMS.txt
 
 # Windows and editor files

@@ -382,7 +382,9 @@ namespace CodexUsageOverlay
             Screen targetScreen = Screen.FromHandle(codexWindow);
             int visibleTitleBarTop = Math.Max(rect.Top, targetScreen.Bounds.Top);
             int overlayTop = visibleTitleBarTop + (titleBarHeight - ScalePixels(HeaderHeight)) / 2;
-            bool showRadarBanner = !settingsExpanded && !radarBannerDismissed &&
+            bool radarEventDismissed = !String.IsNullOrWhiteSpace(resetRadar.EvidencePostId) &&
+                String.Equals(settings.DismissedRadarEventId, resetRadar.EvidencePostId, StringComparison.Ordinal);
+            bool showRadarBanner = !settingsExpanded && !radarBannerDismissed && !radarEventDismissed &&
                 ResetRadarBannerForm.ShouldShow(resetRadar);
             int radarBannerHeight = ScalePixels(ResetRadarBannerForm.LogicalHeight);
             int radarBannerGap = ScalePixels(ResetRadarBannerForm.LogicalGap);
@@ -1297,12 +1299,24 @@ namespace CodexUsageOverlay
         private void DismissRadarBanner()
         {
             radarBannerDismissed = true;
+            if (resetRadar != null && !String.IsNullOrWhiteSpace(resetRadar.EvidencePostId))
+            {
+                settings.DismissedRadarEventId = resetRadar.EvidencePostId;
+                OverlaySettingsStore.Save(settings);
+                settingsRevision = OverlaySettingsStore.GetRevision();
+            }
             resetRadarBanner.HideBanner();
         }
 
         private void ShowRadarBanner()
         {
             radarBannerDismissed = false;
+            if (!String.IsNullOrWhiteSpace(settings.DismissedRadarEventId))
+            {
+                settings.DismissedRadarEventId = String.Empty;
+                OverlaySettingsStore.Save(settings);
+                settingsRevision = OverlaySettingsStore.GetRevision();
+            }
         }
 
         private static void OpenExternalUrl(string url)
