@@ -621,12 +621,13 @@ namespace CodexUsageOverlay
         private static ParsedResetEvent ParseEvent(ResetFeedEvent item)
         {
             if (item == null) throw new InvalidDataException("重置事件为空");
+            string normalizedKind = NormalizeEventKind(item);
             string[] kinds = { "reset_completed", "reset_scheduled", "banked_reset", "limit_increase", "uncertain" };
-            if (Array.IndexOf(kinds, item.kind) < 0) throw new InvalidDataException("重置事件类型无效");
+            if (Array.IndexOf(kinds, normalizedKind) < 0) throw new InvalidDataException("重置事件类型无效");
             if (Double.IsNaN(item.confidence) || Double.IsInfinity(item.confidence) || item.confidence < 0d || item.confidence > 1d)
                 throw new InvalidDataException("重置事件置信度无效");
             if (String.IsNullOrWhiteSpace(item.text)) throw new InvalidDataException("重置事件缺少原帖文本");
-            if (!RationaleMatches(item.kind, item.rationale)) throw new InvalidDataException("重置事件解释与类型不匹配");
+            if (!RationaleMatches(normalizedKind, item.rationale)) throw new InvalidDataException("重置事件解释与类型不匹配");
             if (item.scope == null || item.scope.plans == null || item.scope.windows == null)
                 throw new InvalidDataException("重置事件缺少适用范围");
             if (item.source == null) throw new InvalidDataException("重置事件缺少来源");
@@ -636,26 +637,43 @@ namespace CodexUsageOverlay
             DateTimeOffset? effectiveAt = String.IsNullOrWhiteSpace(item.effectiveAt)
                 ? (DateTimeOffset?)null
                 : ParseTimestamp(item.effectiveAt, "effectiveAt");
-            if (item.kind == "reset_scheduled" && !effectiveAt.HasValue)
+            if (normalizedKind == "reset_scheduled" && !effectiveAt.HasValue)
                 throw new InvalidDataException("重置预告缺少生效时间");
-            if ((item.kind == "banked_reset" || item.kind == "limit_increase" || item.kind == "uncertain") && effectiveAt.HasValue)
+            if ((normalizedKind == "banked_reset" || normalizedKind == "limit_increase" || normalizedKind == "uncertain") && effectiveAt.HasValue)
                 throw new InvalidDataException("该重置事件不能包含生效时间");
 
             ParsedResetEvent parsed = new ParsedResetEvent
             {
-                Kind = item.kind,
+                Kind = normalizedKind,
                 AnnouncedAt = announcedAt,
                 EffectiveAt = effectiveAt,
-                OccurrenceAt = item.kind == "reset_completed" ? (effectiveAt ?? announcedAt) : (DateTimeOffset?)null,
+                OccurrenceAt = normalizedKind == "reset_completed" ? (effectiveAt ?? announcedAt) : (DateTimeOffset?)null,
                 PostId = item.source.postId,
                 SourceUrl = item.source.url,
                 Confidence = item.confidence,
                 Plans = item.scope.plans,
                 Windows = item.scope.windows
             };
-            if (item.kind == "reset_scheduled")
+            if (normalizedKind == "reset_scheduled")
                 ResolveScheduleWindow(parsed);
             return parsed;
+        }
+
+        private static string NormalizeEventKind(ResetFeedEvent item)
+        {
+            if (String.IsNullOrWhiteSpace(item.resetType))
+                return item.kind;
+
+            // The feed now represents a banked/reset-credit announcement as
+            // kind=reset_completed with resetType=banked. Keep it out of the
+            // actual-completed path so it cannot trigger a false reset alert.
+            if (item.resetType == "banked" &&
+                (item.kind == "reset_completed" || item.kind == "banked_reset"))
+                return "banked_reset";
+            if (item.resetType == "global" && item.kind == "reset_completed")
+                return "reset_completed";
+
+            throw new InvalidDataException("重置事件 resetType 与类型不匹配");
         }
 
         private static void ValidateSource(ResetFeedSource source)
@@ -676,7 +694,8 @@ namespace CodexUsageOverlay
         {
             if (kind == "reset_completed") return rationale == "Explicit Codex quota reset announcement.";
             if (kind == "reset_scheduled") return rationale == "Explicit Codex quota reset schedule.";
-            if (kind == "banked_reset") return rationale == "Banked reset announcement; not a completed reset.";
+            if (kind == "banked_reset") return rationale == "Banked reset announcement; not a completed reset." ||
+                rationale == "Explicit Codex reset-bank credit announcement.";
             if (kind == "limit_increase") return rationale == "Quota limit increase announcement; not a reset.";
             return rationale == "Not a clear reset signal." ||
                 rationale == "Relevant announcement could not be classified safely.";
@@ -874,6 +893,7 @@ namespace CodexUsageOverlay
         private sealed class ResetFeedEvent
         {
             public string kind { get; set; }
+            public string resetType { get; set; }
             public string announcedAt { get; set; }
             public string effectiveAt { get; set; }
             public ResetFeedScope scope { get; set; }

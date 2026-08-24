@@ -9,6 +9,7 @@ internal static class ResetRadarTests
     private static int Main()
     {
         Run("completed reset is today", CompletedResetIsToday);
+        Run("banked reset type alias is accepted", BankedResetTypeAliasIsAccepted);
         Run("future schedule today is pending", FutureScheduleTodayIsPending);
         Run("expired exact schedule is not today", ExpiredExactScheduleIsNotToday);
         Run("scheduled date range crosses Shanghai local day", DateRangeCrossesShanghaiLocalDay);
@@ -71,6 +72,18 @@ internal static class ResetRadarTests
             "2026-07-28T12:00:00Z",
             ScheduledEvent("2026-07-28T11:00:00Z", "2026-07-28T13:00:00Z", "1002")), now);
         Assert(data.Status == ResetRadarStatus.ScheduledToday, data.Status.ToString());
+    }
+
+    private static void BankedResetTypeAliasIsAccepted()
+    {
+        DateTimeOffset now = DateTimeOffset.Parse("2026-08-24T03:00:00Z");
+        ResetRadarData data = Parse(Feed(
+            "2026-08-24T03:00:00Z",
+            "2026-08-24T03:00:00Z",
+            BankedCompletedEvent("2026-08-22T00:50:36Z", "1000")), now);
+        Assert(data.Status == ResetRadarStatus.NoSignal, data.Status.ToString());
+        Assert(data.EventKind == "banked_reset", data.EventKind);
+        Assert(data.EvidencePostId == "1000", data.EvidencePostId);
     }
 
     private static void ConfidenceAndCountdownAreDisplayed()
@@ -295,6 +308,12 @@ internal static class ResetRadarTests
             "Explicit Codex quota reset announcement.");
     }
 
+    private static string BankedCompletedEvent(string announcedAt, string postId)
+    {
+        return Event("reset_completed", announcedAt, null, postId,
+            "Explicit Codex reset-bank credit announcement.", "banked");
+    }
+
     private static string ScheduledEvent(string announcedAt, string effectiveAt, string postId)
     {
         return Event("reset_scheduled", announcedAt, effectiveAt, postId,
@@ -303,8 +322,15 @@ internal static class ResetRadarTests
 
     private static string Event(string kind, string announcedAt, string effectiveAt, string postId, string rationale)
     {
+        return Event(kind, announcedAt, effectiveAt, postId, rationale, null);
+    }
+
+    private static string Event(string kind, string announcedAt, string effectiveAt, string postId, string rationale, string resetType)
+    {
         string effective = effectiveAt == null ? "null" : "\"" + effectiveAt + "\"";
+        string resetTypeJson = resetType == null ? String.Empty : "\"resetType\":\"" + resetType + "\",";
         return "{\"kind\":\"" + kind + "\"," +
+            resetTypeJson +
             "\"announcedAt\":\"" + announcedAt + "\"," +
             "\"effectiveAt\":" + effective + "," +
             "\"scope\":{\"plans\":[\"all\"],\"windows\":[\"weekly\"]}," +
