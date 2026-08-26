@@ -446,6 +446,7 @@ namespace CodexUsageOverlay
         {
             string planLabel = usage.Plan.ToUpperInvariant();
             bool hasQuotaData = usage.RateLimitStatus != "待刷新";
+            string shortQuota = BuildShortQuotaText(usage, hasQuotaData);
             string weeklyRemaining = FormatRemaining(usage.WeeklyRemaining, hasQuotaData);
             string quotaReset = BuildQuotaResetText(usage);
             string tokensText = !String.IsNullOrWhiteSpace(usage.ProfileTokensText)
@@ -456,6 +457,7 @@ namespace CodexUsageOverlay
             sections.Add(planLabel);
             if (availableTextWidth >= 500)
             {
+                sections.Add(shortQuota);
                 sections.Add("周用量剩余：" + weeklyRemaining + "·" + quotaReset);
                 if (IsAbnormalRateLimitStatus(usage.RateLimitStatus))
                     sections.Add("状态：" + usage.RateLimitStatus);
@@ -469,6 +471,7 @@ namespace CodexUsageOverlay
             {
                 sections.Clear();
                 sections.Add(planLabel);
+                sections.Add(shortQuota);
                 sections.Add("周用量剩余：" + weeklyRemaining);
                 sections.Add(quotaReset);
                 if (usage.AvailableResetCredits.HasValue)
@@ -477,6 +480,7 @@ namespace CodexUsageOverlay
                 return String.Join(" | ", sections.ToArray());
             }
 
+            sections.Add(shortQuota);
             sections.Add("周用量剩余：" + weeklyRemaining);
             sections.Add(quotaReset);
             if (IsAbnormalRateLimitStatus(usage.RateLimitStatus))
@@ -491,9 +495,24 @@ namespace CodexUsageOverlay
         {
             if (HasResetText(usage.WeeklyResetText))
                 return "周重置：" + FormatResetText(usage.WeeklyResetText);
-            if (HasResetText(usage.ShortResetText))
-                return "短期重置：" + FormatResetText(usage.ShortResetText);
             return "周重置：待刷新";
+        }
+
+        private static string BuildShortQuotaText(UsageData usage, bool hasQuotaData)
+        {
+            string label = "5小时额度剩余：";
+            if (usage.ShortWindowMinutes.HasValue && usage.ShortWindowMinutes.Value > 0)
+            {
+                long minutes = usage.ShortWindowMinutes.Value;
+                label = minutes % 60 == 0
+                    ? (minutes / 60).ToString(CultureInfo.InvariantCulture) + "小时额度剩余："
+                    : minutes.ToString(CultureInfo.InvariantCulture) + "分钟额度剩余：";
+            }
+
+            string result = label + FormatRemaining(usage.ShortRemaining, hasQuotaData);
+            if (HasResetText(usage.ShortResetText))
+                result += "·短期重置：" + FormatResetText(usage.ShortResetText);
+            return result;
         }
 
         private static bool HasResetText(string resetText)
@@ -1541,6 +1560,7 @@ namespace CodexUsageOverlay
                     long longNumber;
                     if (key == "Plan" && value.Length > 0) result.Plan = value;
                     else if (key == "ShortRemaining" && Int32.TryParse(value, out number)) result.ShortRemaining = number;
+                    else if (key == "ShortWindowMinutes" && Int64.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out longNumber)) result.ShortWindowMinutes = longNumber;
                     else if (key == "ShortReset" && value.Length > 0) result.ShortResetText = value;
                     else if (key == "WeeklyRemaining" && Int32.TryParse(value, out number)) result.WeeklyRemaining = number;
                     else if (key == "WeeklyReset" && value.Length > 0) result.WeeklyResetText = value;
@@ -1572,6 +1592,7 @@ namespace CodexUsageOverlay
                 {
                     "Plan=" + data.Plan,
                     "ShortRemaining=" + (data.ShortRemaining.HasValue ? data.ShortRemaining.Value.ToString(CultureInfo.InvariantCulture) : String.Empty),
+                    "ShortWindowMinutes=" + (data.ShortWindowMinutes.HasValue ? data.ShortWindowMinutes.Value.ToString(CultureInfo.InvariantCulture) : String.Empty),
                     "ShortReset=" + data.ShortResetText,
                     "WeeklyRemaining=" + (data.WeeklyRemaining.HasValue ? data.WeeklyRemaining.Value.ToString(CultureInfo.InvariantCulture) : String.Empty),
                     "WeeklyReset=" + data.WeeklyResetText,

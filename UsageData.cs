@@ -8,6 +8,8 @@ namespace CodexUsageOverlay
         public bool HasPlan;
         public int? ShortRemaining;
         public bool HasShortRemaining;
+        public long? ShortWindowMinutes;
+        public bool HasShortWindowMinutes;
         public string ShortResetText = "待刷新";
         public bool HasShortResetText;
         public int? WeeklyRemaining;
@@ -48,6 +50,11 @@ namespace CodexUsageOverlay
             if (incoming.HasShortRemaining && target.ShortRemaining != incoming.ShortRemaining)
             {
                 target.ShortRemaining = incoming.ShortRemaining;
+                changed = true;
+            }
+            if (incoming.HasShortWindowMinutes && target.ShortWindowMinutes != incoming.ShortWindowMinutes)
+            {
+                target.ShortWindowMinutes = incoming.ShortWindowMinutes;
                 changed = true;
             }
             if (incoming.HasShortResetText && target.ShortResetText != incoming.ShortResetText)

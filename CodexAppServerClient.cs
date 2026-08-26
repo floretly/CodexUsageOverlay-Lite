@@ -316,6 +316,8 @@ namespace CodexUsageOverlay
                 remaining = Math.Max(0, Math.Min(100, remaining));
                 if (shortWindow)
                 {
+                    usage.ShortWindowMinutes = durationMinutes;
+                    usage.HasShortWindowMinutes = true;
                     usage.ShortRemaining = remaining;
                     usage.HasShortRemaining = true;
                 }

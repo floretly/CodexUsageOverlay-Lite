@@ -29,6 +29,8 @@ namespace CodexUsageOverlay
             Assert(usage.HasPlan && usage.Plan == "Free", "real Free plan was not accepted");
             Assert(usage.HasShortRemaining && usage.ShortRemaining == 88,
                 "short quota was not parsed");
+            Assert(usage.HasShortWindowMinutes && usage.ShortWindowMinutes == 300,
+                "short quota window duration was not preserved");
             Assert(usage.HasRateLimitStatus && usage.RateLimitStatus == "正常",
                 "explicit null status was not treated as normal");
             Assert(usage.HasAvailableResetCredits && usage.AvailableResetCredits == 0,
