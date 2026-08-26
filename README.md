@@ -55,10 +55,10 @@ Codex Usage Overlay Lite 运行在 Windows 桌面上，不修改 Codex 主程序
 从本仓库的 [Releases](https://github.com/floretly/CodexUsageOverlay-Lite/releases) 下载当前安装包：
 
 直接下载：
-https://github.com/floretly/CodexUsageOverlay-Lite/releases/download/v1.0.6/CodexUsageOverlay-Lite-Setup-1.0.6.exe
+https://github.com/floretly/CodexUsageOverlay-Lite/releases/download/v1.0.7/CodexUsageOverlay-Lite-Setup-1.0.7.exe
 
 ```text
-CodexUsageOverlay-Lite-Setup-1.0.6.exe
+CodexUsageOverlay-Lite-Setup-1.0.7.exe
 ```
 
 SHA-256 校验值在同一 Release 的 `SHA256SUMS.txt` 中。
@@ -79,7 +79,7 @@ SHA-256 校验值在同一 Release 的 `SHA256SUMS.txt` 中。
 静默安装参数：
 
 ```powershell
-.\CodexUsageOverlay-Lite-Setup-1.0.6.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS
+.\CodexUsageOverlay-Lite-Setup-1.0.7.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS
 ```
 
 ### 从源码构建
@@ -176,6 +176,8 @@ Error=none
 3. 当前点击并聚焦了 Codex 窗口；
 4. `CodexUsageOverlay.exe` 进程存在；
 5. 不是在设置面板或快照命令运行后误判了显示状态。
+
+如果同时打开了多个 Codex/ChatGPT 窗口，请在需要显示悬浮条的那个窗口内点击一次；Overlay 会跟随当前真正获得焦点的窗口。桌面上的“Codex Overlay 控制面板”只是管理工具，点击“启动 Overlay”后才会启动实际悬浮条进程。
 
 ### 只能看到缓存
 

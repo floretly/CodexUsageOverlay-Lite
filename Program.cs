@@ -341,7 +341,15 @@ namespace CodexUsageOverlay
                     ShowResetNotification(notification);
             }
 
-            if (codexWindow == IntPtr.Zero || !NativeMethods.IsWindow(codexWindow))
+            IntPtr foregroundWindow = NativeMethods.GetForegroundWindow();
+            if (CodexWindow.IsCandidate(foregroundWindow))
+            {
+                // Codex can expose more than one visible ChatGPT window. Follow the
+                // one that is actually focused instead of keeping the first window
+                // returned by EnumWindows, which may make the overlay disappear.
+                codexWindow = foregroundWindow;
+            }
+            else if (codexWindow == IntPtr.Zero || !NativeMethods.IsWindow(codexWindow))
             {
                 codexWindow = CodexWindow.Find();
             }
@@ -1514,29 +1522,42 @@ namespace CodexUsageOverlay
     {
         public static IntPtr Find()
         {
+            IntPtr foreground = NativeMethods.GetForegroundWindow();
+            if (IsCandidate(foreground))
+                return foreground;
+
             IntPtr result = IntPtr.Zero;
             NativeMethods.EnumWindows(delegate(IntPtr hwnd, IntPtr lParam)
             {
-                if (!NativeMethods.IsWindowVisible(hwnd) || NativeMethods.GetWindowText(hwnd) != "ChatGPT")
+                if (!IsCandidate(hwnd))
                     return true;
-
-                uint processId;
-                NativeMethods.GetWindowThreadProcessId(hwnd, out processId);
-                try
-                {
-                    Process process = Process.GetProcessById((int)processId);
-                    if (!String.Equals(process.ProcessName, "ChatGPT", StringComparison.OrdinalIgnoreCase))
-                        return true;
-                }
-                catch
-                {
-                    return true;
-                }
 
                 result = hwnd;
                 return false;
             }, IntPtr.Zero);
             return result;
+        }
+
+        public static bool IsCandidate(IntPtr hwnd)
+        {
+            if (hwnd == IntPtr.Zero || !NativeMethods.IsWindow(hwnd) ||
+                !NativeMethods.IsWindowVisible(hwnd) || NativeMethods.IsIconic(hwnd) ||
+                NativeMethods.GetWindowText(hwnd) != "ChatGPT")
+                return false;
+
+            uint processId;
+            NativeMethods.GetWindowThreadProcessId(hwnd, out processId);
+            try
+            {
+                using (Process process = Process.GetProcessById((int)processId))
+                {
+                    return String.Equals(process.ProcessName, "ChatGPT", StringComparison.OrdinalIgnoreCase);
+                }
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 
