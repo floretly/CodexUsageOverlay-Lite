@@ -455,8 +455,7 @@ namespace CodexUsageOverlay
             string planLabel = usage.Plan.ToUpperInvariant();
             bool hasQuotaData = usage.RateLimitStatus != "待刷新";
             string shortQuota = BuildShortQuotaText(usage, hasQuotaData);
-            string weeklyRemaining = FormatRemaining(usage.WeeklyRemaining, hasQuotaData);
-            string quotaReset = BuildQuotaResetText(usage);
+            string weeklyQuota = BuildWeeklyQuotaText(usage, hasQuotaData);
             string tokensText = !String.IsNullOrWhiteSpace(usage.ProfileTokensText)
                 ? usage.ProfileTokensText
                 : "待刷新";
@@ -466,12 +465,12 @@ namespace CodexUsageOverlay
             if (availableTextWidth >= 500)
             {
                 sections.Add(shortQuota);
-                sections.Add("周用量剩余：" + weeklyRemaining + "·" + quotaReset);
+                sections.Add(weeklyQuota);
                 if (IsAbnormalRateLimitStatus(usage.RateLimitStatus))
-                    sections.Add("状态：" + usage.RateLimitStatus);
+                    sections.Add(usage.RateLimitStatus);
                 if (usage.AvailableResetCredits.HasValue)
-                    sections.Add("重置券：" + usage.AvailableResetCredits.Value.ToString(CultureInfo.InvariantCulture));
-                sections.Add("累计Token：" + tokensText);
+                    sections.Add("券" + usage.AvailableResetCredits.Value.ToString(CultureInfo.InvariantCulture));
+                sections.Add("Token " + tokensText);
                 return String.Join(" | ", sections.ToArray());
             }
 
@@ -480,46 +479,45 @@ namespace CodexUsageOverlay
                 sections.Clear();
                 sections.Add(planLabel);
                 sections.Add(shortQuota);
-                sections.Add("周用量剩余：" + weeklyRemaining);
-                sections.Add(quotaReset);
+                sections.Add(weeklyQuota);
                 if (usage.AvailableResetCredits.HasValue)
-                    sections.Add("重置券：" + usage.AvailableResetCredits.Value.ToString(CultureInfo.InvariantCulture));
-                sections.Add("累计Token：" + tokensText);
+                    sections.Add("券" + usage.AvailableResetCredits.Value.ToString(CultureInfo.InvariantCulture));
+                sections.Add("Token " + tokensText);
                 return String.Join(" | ", sections.ToArray());
             }
 
             sections.Add(shortQuota);
-            sections.Add("周用量剩余：" + weeklyRemaining);
-            sections.Add(quotaReset);
+            sections.Add(weeklyQuota);
             if (IsAbnormalRateLimitStatus(usage.RateLimitStatus))
                 sections.Add(usage.RateLimitStatus);
             if (usage.AvailableResetCredits.HasValue)
-                sections.Add("重置券：" + usage.AvailableResetCredits.Value.ToString(CultureInfo.InvariantCulture));
-            sections.Add("累计Token：" + tokensText);
+                sections.Add("券" + usage.AvailableResetCredits.Value.ToString(CultureInfo.InvariantCulture));
+            sections.Add("Token " + tokensText);
             return String.Join(" | ", sections.ToArray());
         }
 
-        private static string BuildQuotaResetText(UsageData usage)
+        private static string BuildWeeklyQuotaText(UsageData usage, bool hasQuotaData)
         {
+            string result = "周 " + FormatRemaining(usage.WeeklyRemaining, hasQuotaData);
             if (HasResetText(usage.WeeklyResetText))
-                return "周重置：" + FormatResetText(usage.WeeklyResetText);
-            return "周重置：待刷新";
+                result += "·" + FormatResetText(usage.WeeklyResetText);
+            return result;
         }
 
         private static string BuildShortQuotaText(UsageData usage, bool hasQuotaData)
         {
-            string label = "5小时额度剩余：";
+            string label = "5小时";
             if (usage.ShortWindowMinutes.HasValue && usage.ShortWindowMinutes.Value > 0)
             {
                 long minutes = usage.ShortWindowMinutes.Value;
                 label = minutes % 60 == 0
-                    ? (minutes / 60).ToString(CultureInfo.InvariantCulture) + "小时额度剩余："
-                    : minutes.ToString(CultureInfo.InvariantCulture) + "分钟额度剩余：";
+                    ? (minutes / 60).ToString(CultureInfo.InvariantCulture) + "小时"
+                    : minutes.ToString(CultureInfo.InvariantCulture) + "分钟";
             }
 
-            string result = label + FormatRemaining(usage.ShortRemaining, hasQuotaData);
+            string result = label + " " + FormatRemaining(usage.ShortRemaining, hasQuotaData);
             if (HasResetText(usage.ShortResetText))
-                result += "·短期重置：" + FormatResetText(usage.ShortResetText);
+                result += "·" + FormatResetText(usage.ShortResetText);
             return result;
         }
 
@@ -762,7 +760,7 @@ namespace CodexUsageOverlay
             Directory.CreateDirectory(outputDirectory);
             try
             {
-                displayText = "PRO | 周用量剩余：58%·8月16日11:24重置 | 重置券：2 | 累计Token：3.5亿";
+                displayText = "PRO | 5小时 86%·14:01重置 | 周 58%·8月16日11:24重置 | 券2 | Token 3.5亿";
                 resetRadar = new ResetRadarData
                 {
                     Status = ResetRadarStatus.ScheduledToday,
