@@ -469,7 +469,7 @@ namespace CodexUsageOverlay
                 if (IsAbnormalRateLimitStatus(usage.RateLimitStatus))
                     sections.Add(usage.RateLimitStatus);
                 if (usage.AvailableResetCredits.HasValue)
-                    sections.Add("券" + usage.AvailableResetCredits.Value.ToString(CultureInfo.InvariantCulture));
+                    sections.Add("重置券" + usage.AvailableResetCredits.Value.ToString(CultureInfo.InvariantCulture));
                 sections.Add("Token " + tokensText);
                 return String.Join(" | ", sections.ToArray());
             }
@@ -481,7 +481,7 @@ namespace CodexUsageOverlay
                 sections.Add(shortQuota);
                 sections.Add(weeklyQuota);
                 if (usage.AvailableResetCredits.HasValue)
-                    sections.Add("券" + usage.AvailableResetCredits.Value.ToString(CultureInfo.InvariantCulture));
+                    sections.Add("重置券" + usage.AvailableResetCredits.Value.ToString(CultureInfo.InvariantCulture));
                 sections.Add("Token " + tokensText);
                 return String.Join(" | ", sections.ToArray());
             }
@@ -491,14 +491,14 @@ namespace CodexUsageOverlay
             if (IsAbnormalRateLimitStatus(usage.RateLimitStatus))
                 sections.Add(usage.RateLimitStatus);
             if (usage.AvailableResetCredits.HasValue)
-                sections.Add("券" + usage.AvailableResetCredits.Value.ToString(CultureInfo.InvariantCulture));
+                sections.Add("重置券" + usage.AvailableResetCredits.Value.ToString(CultureInfo.InvariantCulture));
             sections.Add("Token " + tokensText);
             return String.Join(" | ", sections.ToArray());
         }
 
         private static string BuildWeeklyQuotaText(UsageData usage, bool hasQuotaData)
         {
-            string result = "周 " + FormatRemaining(usage.WeeklyRemaining, hasQuotaData);
+            string result = "周剩余 " + FormatRemaining(usage.WeeklyRemaining, hasQuotaData);
             if (HasResetText(usage.WeeklyResetText))
                 result += "·" + FormatResetText(usage.WeeklyResetText);
             return result;
@@ -760,7 +760,7 @@ namespace CodexUsageOverlay
             Directory.CreateDirectory(outputDirectory);
             try
             {
-                displayText = "PRO | 5小时 86%·14:01重置 | 周 58%·8月16日11:24重置 | 券2 | Token 3.5亿";
+                displayText = "PRO | 5小时 86%·14:01重置 | 周剩余 58%·8月16日11:24重置 | 重置券2 | Token 3.5亿";
                 resetRadar = new ResetRadarData
                 {
                     Status = ResetRadarStatus.ScheduledToday,

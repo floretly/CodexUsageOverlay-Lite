@@ -114,6 +114,11 @@ namespace CodexUsageOverlay
 
             try
             {
+                // A previous installation can leave a same-named process alive.
+                // The shared mutex would make the new process exit immediately,
+                // which looks like the Start button did nothing. Clean up only
+                // same-named Overlay processes, never the Codex application.
+                StopOverlayProcesses();
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = overlayPath,
@@ -135,22 +140,7 @@ namespace CodexUsageOverlay
 
             try
             {
-                foreach (Process overlay in Process.GetProcessesByName("CodexUsageOverlay"))
-                {
-                    try
-                    {
-                        if (!overlay.HasExited)
-                        {
-                            overlay.CloseMainWindow();
-                            if (!overlay.WaitForExit(2000) && !overlay.HasExited)
-                                overlay.Kill();
-                        }
-                    }
-                    finally
-                    {
-                        overlay.Dispose();
-                    }
-                }
+                StopOverlayProcesses();
                 StartOverlay();
             }
             catch (Exception exception)
@@ -205,10 +195,65 @@ namespace CodexUsageOverlay
             return false;
         }
 
-        private static bool IsOverlayRunning()
+        private bool IsOverlayRunning()
         {
             Process[] overlays = Process.GetProcessesByName("CodexUsageOverlay");
-            try { return overlays.Length > 0; }
+            try
+            {
+                foreach (Process overlay in overlays)
+                {
+                    try
+                    {
+                        if (!overlay.HasExited && IsCurrentOverlay(overlay))
+                            return true;
+                    }
+                    catch
+                    {
+                    }
+                }
+                return false;
+            }
+            finally
+            {
+                foreach (Process overlay in overlays)
+                    overlay.Dispose();
+            }
+        }
+
+        private bool IsCurrentOverlay(Process overlay)
+        {
+            try
+            {
+                return String.Equals(overlay.MainModule.FileName, overlayPath, StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static void StopOverlayProcesses()
+        {
+            Process[] overlays = Process.GetProcessesByName("CodexUsageOverlay");
+            try
+            {
+                foreach (Process overlay in overlays)
+                {
+                    try
+                    {
+                        if (!overlay.HasExited)
+                        {
+                            overlay.CloseMainWindow();
+                            if (!overlay.WaitForExit(1500) && !overlay.HasExited)
+                                overlay.Kill();
+                        }
+                    }
+                    catch
+                    {
+                        // A process that already exited needs no further action.
+                    }
+                }
+            }
             finally
             {
                 foreach (Process overlay in overlays)
