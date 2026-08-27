@@ -55,10 +55,10 @@ Codex Usage Overlay Lite 运行在 Windows 桌面上，不修改 Codex 主程序
 从本仓库的 [Releases](https://github.com/floretly/CodexUsageOverlay-Lite/releases) 下载当前安装包：
 
 直接下载：
-https://github.com/floretly/CodexUsageOverlay-Lite/releases/download/v1.0.10/CodexUsageOverlay-Lite-Setup-1.0.10.exe
+https://github.com/floretly/CodexUsageOverlay-Lite/releases/download/v1.0.11/CodexUsageOverlay-Lite-Setup-1.0.11.exe
 
 ```text
-CodexUsageOverlay-Lite-Setup-1.0.10.exe
+CodexUsageOverlay-Lite-Setup-1.0.11.exe
 ```
 
 SHA-256 校验值在同一 Release 的 `SHA256SUMS.txt` 中。
@@ -79,7 +79,7 @@ SHA-256 校验值在同一 Release 的 `SHA256SUMS.txt` 中。
 静默安装参数：
 
 ```powershell
-.\CodexUsageOverlay-Lite-Setup-1.0.10.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS
+.\CodexUsageOverlay-Lite-Setup-1.0.11.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS
 ```
 
 ### 从源码构建
@@ -163,7 +163,7 @@ Error=none
 
 理想状态是 `CodexWindow=found`、`DataSource=Codex CLI app-server` 且 `Error=none`。
 
-如果显示 `DataSource=缓存`，表示实时接口尚未成功读取，程序正在使用最近一次可信缓存；如果显示 `Error=present`，请检查 CLI 登录状态、`CODEX_CLI_PATH` 和网络连接。
+如果显示 `DataSource=缓存`，表示实时接口尚未成功读取，程序正在使用最近一次可信缓存；如果显示 `Error=present`，请检查 CLI 登录状态、`CODEX_CLI_PATH` 和网络连接。Overlay 即使因未聚焦 Codex 而隐藏，也会继续在后台刷新本地缓存。
 
 ## 常见问题
 

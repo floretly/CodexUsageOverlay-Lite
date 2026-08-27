@@ -341,6 +341,11 @@ namespace CodexUsageOverlay
                     ShowResetNotification(notification);
             }
 
+            // Keep the local usage cache fresh even while the overlay is hidden.
+            // Visibility follows the focused Codex window, but synchronization
+            // must not stop just because another application has focus.
+            service.RequestRefresh(settings.RefreshSeconds, false);
+
             IntPtr foregroundWindow = NativeMethods.GetForegroundWindow();
             if (CodexWindow.IsCandidate(foregroundWindow))
             {
@@ -426,8 +431,6 @@ namespace CodexUsageOverlay
             {
                 resetRadarBanner.HideBanner();
             }
-
-            service.RequestRefresh(settings.RefreshSeconds, false);
 
             UsageData usage = service.Snapshot();
             int textWidth = Math.Max(40, ResetRadarBounds.Left - 14);
