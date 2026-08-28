@@ -49,6 +49,7 @@ internal static class ResetRadarTests
         Run("foreign GitHub release URL is rejected", GitHubReleaseUpdateTests.ForeignReleaseUrlIsRejected);
         Run("current GitHub release does not prompt", GitHubReleaseUpdateTests.CurrentReleaseDoesNotPrompt);
         Run("GitHub release URL allowlist is strict", GitHubReleaseUpdateTests.ReleaseUrlAllowlistIsStrict);
+        Run("GitHub installer URL uses release version", GitHubReleaseUpdateTests.InstallerDownloadUrlUsesReleaseVersion);
 
         Console.WriteLine(failures == 0 ? "All reset radar tests passed." : failures + " reset radar test(s) failed.");
         return failures == 0 ? 0 : 1;

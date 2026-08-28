@@ -14,6 +14,7 @@ namespace CodexUsageOverlay
         public bool UpdateAvailable;
         public bool IsChecking;
         public DateTime? LastCheckedUtc;
+        public string LastError = String.Empty;
 
         public GitHubReleaseUpdateSnapshot Clone()
         {
@@ -50,16 +51,22 @@ namespace CodexUsageOverlay
 
         public void RequestCheck()
         {
+            RequestCheck(false);
+        }
+
+        public void RequestCheck(bool force)
+        {
             bool shouldStart = false;
             lock (sync)
             {
                 DateTime nowUtc = DateTime.UtcNow;
                 if (!disposed && !checkRunning && nowUtc >= lastCheckAttemptUtc &&
-                    nowUtc - lastCheckAttemptUtc >= MinimumCheckInterval)
+                    (force || nowUtc - lastCheckAttemptUtc >= MinimumCheckInterval))
                 {
                     checkRunning = true;
                     lastCheckAttemptUtc = nowUtc;
                     state.IsChecking = true;
+                    state.LastError = String.Empty;
                     shouldStart = true;
                 }
             }
@@ -100,6 +107,14 @@ namespace CodexUsageOverlay
             catch
             {
                 // Update checks must never interrupt the overlay when GitHub is unavailable.
+                lock (sync)
+                {
+                    if (!disposed)
+                    {
+                        state.LastError = "无法检查 GitHub 更新";
+                        state.LastCheckedUtc = DateTime.UtcNow;
+                    }
+                }
             }
             finally
             {
@@ -170,6 +185,25 @@ namespace CodexUsageOverlay
             result.ReleaseUrl = releaseUrl;
             result.UpdateAvailable = latest.CompareTo(current) > 0;
             return result;
+        }
+
+        internal static string GetInstallerDownloadUrl(GitHubReleaseUpdateSnapshot update)
+        {
+            if (update == null || !update.UpdateAvailable ||
+                String.IsNullOrWhiteSpace(update.ReleaseUrl))
+                return String.Empty;
+
+            string releaseTag;
+            if (!TryGetReleaseTag(update.ReleaseUrl, out releaseTag))
+                return String.Empty;
+
+            SemanticVersion latest;
+            if (!SemanticVersion.TryParse(releaseTag, out latest))
+                return String.Empty;
+
+            string fileName = "CodexUsageOverlay-Lite-Setup-" + latest.DisplayVersion + ".exe";
+            return "https://github.com/floretly/CodexUsageOverlay-Lite/releases/download/" +
+                Uri.EscapeDataString(releaseTag) + "/" + Uri.EscapeDataString(fileName);
         }
 
         internal static bool IsAllowedReleaseUrl(string value)

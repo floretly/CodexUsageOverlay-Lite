@@ -1310,8 +1310,34 @@ namespace CodexUsageOverlay
 
         private void OpenReleaseUpdate()
         {
-            OpenExternalUrl(releaseUpdateUrl);
             releaseUpdateNotifyIcon.Visible = false;
+            GitHubReleaseUpdateSnapshot update = releaseUpdateService.Snapshot();
+            if (update.UpdateAvailable && !String.IsNullOrWhiteSpace(update.ReleaseUrl))
+            {
+                DialogResult choice = MessageBox.Show(
+                    this,
+                    "发现 Codex Usage Overlay Lite v" + update.LatestVersion +
+                    "。是否下载并自动安装？\r\n\r\n安装包会先通过 SHA-256 校验。",
+                    "发现新版本",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Information);
+                if (choice == DialogResult.Yes)
+                {
+                    string error;
+                    if (UpdateInstaller.TryStartUpdate(update, out error))
+                    {
+                        MessageBox.Show(this,
+                            "更新安装程序已启动，Overlay 将关闭并完成覆盖更新。",
+                            "开始更新", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        Application.Exit();
+                        return;
+                    }
+                    MessageBox.Show(this, error, "更新失败",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+            }
+            OpenExternalUrl(releaseUpdateUrl);
         }
 
         private void OpenRadarSource()

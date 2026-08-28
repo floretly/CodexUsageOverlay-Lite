@@ -27,6 +27,14 @@ Codex Usage Overlay Lite 运行在 Windows 桌面上，不修改 Codex 主程序
 - 可选择是否启用 Windows 通知。
 - 该提醒是非官方信息，不代表 OpenAI 承诺，也不保证每个账户同时生效。
 
+### 自动更新
+
+- 程序启动后会定期检查本仓库的最新稳定 Release。
+- 发现新版本时会显示更新提示；点击后可确认下载并自动安装。
+- 下载使用 HTTPS，并在安装前对安装包执行 SHA-256 校验；校验失败不会继续安装。
+- 控制面板提供“检查更新”按钮，也可以手动检查。
+- 更新不会读取或修改 Codex 登录信息，安装时只会关闭旧版 Overlay 进程。
+
 ### 外观设置
 
 通过悬浮条右侧齿轮打开设置面板，可调整：
@@ -55,10 +63,10 @@ Codex Usage Overlay Lite 运行在 Windows 桌面上，不修改 Codex 主程序
 从本仓库的 [Releases](https://github.com/floretly/CodexUsageOverlay-Lite/releases) 下载当前安装包：
 
 直接下载：
-https://github.com/floretly/CodexUsageOverlay-Lite/releases/download/v1.0.12/CodexUsageOverlay-Lite-Setup-1.0.12.exe
+https://github.com/floretly/CodexUsageOverlay-Lite/releases/download/v1.0.13/CodexUsageOverlay-Lite-Setup-1.0.13.exe
 
 ```text
-CodexUsageOverlay-Lite-Setup-1.0.12.exe
+CodexUsageOverlay-Lite-Setup-1.0.13.exe
 ```
 
 SHA-256 校验值在同一 Release 的 `SHA256SUMS.txt` 中。
@@ -79,7 +87,7 @@ SHA-256 校验值在同一 Release 的 `SHA256SUMS.txt` 中。
 静默安装参数：
 
 ```powershell
-.\CodexUsageOverlay-Lite-Setup-1.0.12.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS
+.\CodexUsageOverlay-Lite-Setup-1.0.13.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS
 ```
 
 ### 从源码构建

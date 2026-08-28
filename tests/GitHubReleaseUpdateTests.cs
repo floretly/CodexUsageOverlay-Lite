@@ -46,6 +46,16 @@ namespace CodexUsageOverlay
                 "release URL with query was accepted");
         }
 
+        public static void InstallerDownloadUrlUsesReleaseVersion()
+        {
+            GitHubReleaseUpdateSnapshot update = GitHubReleaseUpdateService.EvaluateReleaseUrl(
+                "https://github.com/floretly/CodexUsageOverlay-Lite/releases/tag/v1.1.0");
+            string url = GitHubReleaseUpdateService.GetInstallerDownloadUrl(update);
+            Assert(url ==
+                "https://github.com/floretly/CodexUsageOverlay-Lite/releases/download/v1.1.0/" +
+                "CodexUsageOverlay-Lite-Setup-1.1.0.exe", url);
+        }
+
         private static void Assert(bool condition, string message)
         {
             if (!condition)

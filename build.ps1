@@ -32,6 +32,7 @@ New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
     (Join-Path $projectRoot 'UsageData.cs') `
     (Join-Path $projectRoot 'UsageTrustPolicy.cs') `
     (Join-Path $projectRoot 'GitHubReleaseUpdateService.cs') `
+    (Join-Path $projectRoot 'UpdateInstaller.cs') `
     (Join-Path $projectRoot 'Program.cs') `
     (Join-Path $projectRoot 'OverlaySettings.cs') `
     (Join-Path $projectRoot 'ResetRadarService.cs') `
@@ -50,7 +51,10 @@ if ($LASTEXITCODE -ne 0) {
     /reference:System.Drawing.dll `
     /reference:System.Windows.Forms.dll `
     (Join-Path $projectRoot 'AssemblyInfo.cs') `
-    (Join-Path $projectRoot 'OverlayLauncher.cs')
+    (Join-Path $projectRoot 'ProductInfo.cs') `
+    (Join-Path $projectRoot 'OverlayLauncher.cs') `
+    (Join-Path $projectRoot 'GitHubReleaseUpdateService.cs') `
+    (Join-Path $projectRoot 'UpdateInstaller.cs')
 
 if ($LASTEXITCODE -ne 0) {
     throw "Launcher build failed with exit code $LASTEXITCODE"

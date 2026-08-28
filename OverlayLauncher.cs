@@ -22,6 +22,10 @@ namespace CodexUsageOverlay
         private readonly string overlayPath;
         private readonly Label statusLabel;
         private readonly Timer statusTimer;
+        private readonly GitHubReleaseUpdateService updateService;
+        private Button updateButton;
+        private bool updateCheckRequested;
+        private DateTime updateCheckStartedUtc;
 
         public OverlayLauncherForm()
         {
@@ -69,6 +73,9 @@ namespace CodexUsageOverlay
             Button folderButton = CreateButton("打开目录", 28, 198, 112);
             folderButton.Click += delegate { OpenFolder(); };
 
+            updateButton = CreateButton("检查更新", 154, 198, 112);
+            updateButton.Click += delegate { CheckForUpdates(); };
+
             Controls.Add(title);
             Controls.Add(description);
             Controls.Add(statusLabel);
@@ -76,6 +83,9 @@ namespace CodexUsageOverlay
             Controls.Add(restartButton);
             Controls.Add(settingsButton);
             Controls.Add(folderButton);
+            Controls.Add(updateButton);
+
+            updateService = new GitHubReleaseUpdateService();
 
             statusTimer = new Timer();
             statusTimer.Interval = 1000;
@@ -88,6 +98,8 @@ namespace CodexUsageOverlay
         {
             if (disposing && statusTimer != null)
                 statusTimer.Dispose();
+            if (disposing && updateService != null)
+                updateService.Dispose();
             base.Dispose(disposing);
         }
 
@@ -266,6 +278,72 @@ namespace CodexUsageOverlay
             bool running = IsOverlayRunning();
             statusLabel.Text = running ? "● 状态：Overlay 正在运行" : "○ 状态：Overlay 未运行";
             statusLabel.ForeColor = running ? Color.FromArgb(23, 139, 78) : Color.FromArgb(120, 92, 40);
+            PollUpdateCheck();
+        }
+
+        private void CheckForUpdates()
+        {
+            if (updateCheckRequested)
+                return;
+
+            updateCheckRequested = true;
+            updateCheckStartedUtc = DateTime.UtcNow;
+            updateButton.Enabled = false;
+            updateButton.Text = "检查中...";
+            updateService.RequestCheck(true);
+        }
+
+        private void PollUpdateCheck()
+        {
+            if (!updateCheckRequested)
+                return;
+
+            GitHubReleaseUpdateSnapshot update = updateService.Snapshot();
+            if (update.IsChecking)
+                return;
+            if (!update.LastCheckedUtc.HasValue || update.LastCheckedUtc.Value < updateCheckStartedUtc)
+            {
+                if (DateTime.UtcNow - updateCheckStartedUtc < TimeSpan.FromSeconds(15))
+                    return;
+            }
+
+            updateCheckRequested = false;
+            updateButton.Enabled = true;
+            updateButton.Text = "检查更新";
+            if (!String.IsNullOrWhiteSpace(update.LastError))
+            {
+                MessageBox.Show(this, update.LastError, "检查更新失败",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            if (!update.UpdateAvailable)
+            {
+                MessageBox.Show(this, "当前已经是最新版本 v" + GitHubReleaseUpdateService.CurrentVersion + "。",
+                    "检查更新", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            DialogResult choice = MessageBox.Show(
+                this,
+                "发现新版本 v" + update.LatestVersion + "。是否下载并自动安装？\r\n\r\n安装包会先通过 SHA-256 校验。",
+                "发现新版本",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Information);
+            if (choice != DialogResult.Yes)
+                return;
+
+            string error;
+            if (!UpdateInstaller.TryStartUpdate(update, out error))
+            {
+                MessageBox.Show(this, error, "更新失败",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            MessageBox.Show(this,
+                "更新安装程序已启动，Overlay 将关闭并完成覆盖更新。",
+                "开始更新", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            Application.Exit();
         }
 
         private void ShowError(string title, Exception exception)
