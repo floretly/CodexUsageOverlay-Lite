@@ -9,6 +9,7 @@ internal static class ResetRadarTests
     private static int Main()
     {
         Run("completed reset is today", CompletedResetIsToday);
+        Run("operator-confirmed reset rationale is accepted", OperatorConfirmedResetRationaleIsAccepted);
         Run("banked reset type alias is accepted", BankedResetTypeAliasIsAccepted);
         Run("future schedule today is pending", FutureScheduleTodayIsPending);
         Run("expired exact schedule is not today", ExpiredExactScheduleIsNotToday);
@@ -72,6 +73,18 @@ internal static class ResetRadarTests
             "2026-07-28T12:00:00Z",
             ScheduledEvent("2026-07-28T11:00:00Z", "2026-07-28T13:00:00Z", "1002")), now);
         Assert(data.Status == ResetRadarStatus.ScheduledToday, data.Status.ToString());
+    }
+
+    private static void OperatorConfirmedResetRationaleIsAccepted()
+    {
+        DateTimeOffset now = DateTimeOffset.Parse("2026-08-25T15:00:00Z");
+        ResetRadarData data = Parse(Feed(
+            "2026-08-25T15:00:00Z",
+            "2026-08-25T14:30:00Z",
+            OperatorConfirmedCompletedEvent("2026-08-25T14:30:00Z")), now);
+        Assert(data.Status == ResetRadarStatus.CompletedToday, data.Status.ToString());
+        Assert(String.IsNullOrEmpty(data.SourceUrl), data.SourceUrl);
+        Assert(data.EvidencePostId == "op_test-reset-1014", data.EvidencePostId);
     }
 
     private static void BankedResetTypeAliasIsAccepted()
@@ -306,6 +319,16 @@ internal static class ResetRadarTests
     {
         return Event("reset_completed", announcedAt, null, postId,
             "Explicit Codex quota reset announcement.");
+    }
+
+    private static string OperatorConfirmedCompletedEvent(string announcedAt)
+    {
+        return "{\"kind\":\"reset_completed\",\"announcedAt\":\"" + announcedAt + "\"," +
+            "\"effectiveAt\":\"" + announcedAt + "\"," +
+            "\"scope\":{\"plans\":[\"all\"],\"windows\":[\"weekly\"]}," +
+            "\"source\":{\"origin\":\"operator\",\"postId\":\"op_test-reset-1014\"},\"confidence\":0.95," +
+            "\"rationale\":\"Operator-confirmed Codex quota reset without an X announcement.\"," +
+            "\"text\":\"Operator-confirmed reset.\"}";
     }
 
     private static string BankedCompletedEvent(string announcedAt, string postId)

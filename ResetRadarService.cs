@@ -630,8 +630,14 @@ namespace CodexUsageOverlay
             if (!RationaleMatches(normalizedKind, item.rationale)) throw new InvalidDataException("重置事件解释与类型不匹配");
             if (item.scope == null || item.scope.plans == null || item.scope.windows == null)
                 throw new InvalidDataException("重置事件缺少适用范围");
-            if (item.source == null) throw new InvalidDataException("重置事件缺少来源");
-            ValidateSource(item.source);
+            bool operatorConfirmed = normalizedKind == "reset_completed" &&
+                item.rationale == "Operator-confirmed Codex quota reset without an X announcement.";
+            if (item.source == null && !operatorConfirmed)
+                throw new InvalidDataException("重置事件缺少来源");
+            if (operatorConfirmed && item.source != null && item.source.origin == "operator")
+                ValidateOperatorSource(item.source);
+            else if (item.source != null)
+                ValidateSource(item.source);
 
             DateTimeOffset announcedAt = ParseTimestamp(item.announcedAt, "announcedAt");
             DateTimeOffset? effectiveAt = String.IsNullOrWhiteSpace(item.effectiveAt)
@@ -648,8 +654,9 @@ namespace CodexUsageOverlay
                 AnnouncedAt = announcedAt,
                 EffectiveAt = effectiveAt,
                 OccurrenceAt = normalizedKind == "reset_completed" ? (effectiveAt ?? announcedAt) : (DateTimeOffset?)null,
-                PostId = item.source.postId,
-                SourceUrl = item.source.url,
+                PostId = item.source == null ? String.Empty : item.source.postId,
+                SourceUrl = item.source == null || item.source.origin == "operator" ?
+                    String.Empty : item.source.url,
                 Confidence = item.confidence,
                 Plans = item.scope.plans,
                 Windows = item.scope.windows
@@ -690,9 +697,19 @@ namespace CodexUsageOverlay
                 throw new InvalidDataException("重置事件来源链接无效");
         }
 
+        private static void ValidateOperatorSource(ResetFeedSource source)
+        {
+            if (source.origin != "operator") throw new InvalidDataException("重置事件来源类型无效");
+            if (String.IsNullOrEmpty(source.postId) || source.postId.Length > 64 ||
+                !source.postId.StartsWith("op_", StringComparison.Ordinal) ||
+                !IsSafeIdentifier(source.postId.Substring(3)))
+                throw new InvalidDataException("重置事件来源编号无效");
+        }
+
         private static bool RationaleMatches(string kind, string rationale)
         {
-            if (kind == "reset_completed") return rationale == "Explicit Codex quota reset announcement.";
+            if (kind == "reset_completed") return rationale == "Explicit Codex quota reset announcement." ||
+                rationale == "Operator-confirmed Codex quota reset without an X announcement.";
             if (kind == "reset_scheduled") return rationale == "Explicit Codex quota reset schedule.";
             if (kind == "banked_reset") return rationale == "Banked reset announcement; not a completed reset." ||
                 rationale == "Explicit Codex reset-bank credit announcement.";
@@ -860,6 +877,17 @@ namespace CodexUsageOverlay
             return true;
         }
 
+        private static bool IsSafeIdentifier(string value)
+        {
+            if (String.IsNullOrEmpty(value)) return false;
+            for (int index = 0; index < value.Length; index++)
+            {
+                char ch = value[index];
+                if (!(Char.IsLetterOrDigit(ch) || ch == '_' || ch == '-')) return false;
+            }
+            return true;
+        }
+
         private sealed class ParsedResetEvent
         {
             public string Kind;
@@ -911,6 +939,7 @@ namespace CodexUsageOverlay
 
         private sealed class ResetFeedSource
         {
+            public string origin { get; set; }
             public string handle { get; set; }
             public string postId { get; set; }
             public string url { get; set; }
