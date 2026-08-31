@@ -207,6 +207,7 @@ namespace CodexUsageOverlay
         public const string SiteUrl = "https://www.codexrunway.com/";
 
         private const int RefreshMinutes = 10;
+        private const int OfflineRetrySeconds = 30;
         private const int MaxPayloadCharacters = 262144;
         private readonly object sync = new object();
         private readonly string cachePath;
@@ -231,13 +232,13 @@ namespace CodexUsageOverlay
                 return data.Clone();
         }
 
-        public void RequestRefresh(bool force)
+        public bool RequestRefresh(bool force)
         {
             bool shouldStart = false;
             lock (sync)
             {
                 if (!disposed && !refreshRunning &&
-                    (force || (DateTime.UtcNow - lastRefreshAttemptUtc).TotalMinutes >= RefreshMinutes))
+                    (force || DateTime.UtcNow - lastRefreshAttemptUtc >= GetRefreshInterval()))
                 {
                     refreshRunning = true;
                     lastRefreshAttemptUtc = DateTime.UtcNow;
@@ -245,7 +246,7 @@ namespace CodexUsageOverlay
                 }
             }
             if (!shouldStart)
-                return;
+                return false;
 
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -256,6 +257,17 @@ namespace CodexUsageOverlay
                         refreshRunning = false;
                 }
             });
+            return true;
+        }
+
+        private TimeSpan GetRefreshInterval()
+        {
+            lock (sync)
+            {
+                return data != null && data.NetworkAvailable && !data.IsFromCache
+                    ? TimeSpan.FromMinutes(RefreshMinutes)
+                    : TimeSpan.FromSeconds(OfflineRetrySeconds);
+            }
         }
 
         public bool RefreshNow()
@@ -677,8 +689,9 @@ namespace CodexUsageOverlay
             if (item.resetType == "banked" &&
                 (item.kind == "reset_completed" || item.kind == "banked_reset"))
                 return "banked_reset";
-            if (item.resetType == "global" && item.kind == "reset_completed")
-                return "reset_completed";
+            if (item.resetType == "global" &&
+                (item.kind == "reset_completed" || item.kind == "reset_scheduled"))
+                return item.kind;
 
             throw new InvalidDataException("重置事件 resetType 与类型不匹配");
         }
@@ -710,7 +723,8 @@ namespace CodexUsageOverlay
         {
             if (kind == "reset_completed") return rationale == "Explicit Codex quota reset announcement." ||
                 rationale == "Operator-confirmed Codex quota reset without an X announcement.";
-            if (kind == "reset_scheduled") return rationale == "Explicit Codex quota reset schedule.";
+            if (kind == "reset_scheduled") return rationale == "Explicit Codex quota reset schedule." ||
+                rationale == "High-probability Codex quota reset preview inferred from context.";
             if (kind == "banked_reset") return rationale == "Banked reset announcement; not a completed reset." ||
                 rationale == "Explicit Codex reset-bank credit announcement.";
             if (kind == "limit_increase") return rationale == "Quota limit increase announcement; not a reset.";

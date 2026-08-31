@@ -12,6 +12,7 @@ internal static class ResetRadarTests
         Run("operator-confirmed reset rationale is accepted", OperatorConfirmedResetRationaleIsAccepted);
         Run("banked reset type alias is accepted", BankedResetTypeAliasIsAccepted);
         Run("future schedule today is pending", FutureScheduleTodayIsPending);
+        Run("global scheduled reset preview is accepted", GlobalScheduledResetPreviewIsAccepted);
         Run("expired exact schedule is not today", ExpiredExactScheduleIsNotToday);
         Run("scheduled date range crosses Shanghai local day", DateRangeCrossesShanghaiLocalDay);
         Run("Pacific date range honors daylight saving transition", DateRangeHonorsDaylightSavingTransition);
@@ -86,6 +87,17 @@ internal static class ResetRadarTests
         Assert(data.Status == ResetRadarStatus.CompletedToday, data.Status.ToString());
         Assert(String.IsNullOrEmpty(data.SourceUrl), data.SourceUrl);
         Assert(data.EvidencePostId == "op_test-reset-1014", data.EvidencePostId);
+    }
+
+    private static void GlobalScheduledResetPreviewIsAccepted()
+    {
+        DateTimeOffset now = DateTimeOffset.Parse("2026-08-31T08:00:00Z");
+        ResetRadarData data = Parse(Feed(
+            "2026-08-31T08:00:00Z",
+            "2026-08-31T08:00:00Z",
+            Event("reset_scheduled", "2026-08-31T07:30:00Z", "2026-08-31T09:00:00Z", "1015",
+                "High-probability Codex quota reset preview inferred from context.", "global")), now);
+        Assert(data.Status == ResetRadarStatus.ScheduledToday, data.Status.ToString());
     }
 
     private static void BankedResetTypeAliasIsAccepted()

@@ -238,6 +238,8 @@ namespace CodexUsageOverlay
         private DateTimeOffset? resetRadarDisplayNow;
         private float dpiScale = 1f;
         private bool radarBannerDismissed;
+        private bool radarRefreshRequested;
+        private DateTime radarRefreshRequestedUtc;
         private string settingsRevision;
         private bool rightDownStartedInMainUsage;
 
@@ -333,6 +335,12 @@ namespace CodexUsageOverlay
             {
                 resetRadar = latestRadar;
                 lastRadarRevision = latestRadar.RevisionKey;
+                radarRefreshRequested = false;
+            }
+            else if (radarRefreshRequested &&
+                DateTime.UtcNow - radarRefreshRequestedUtc >= TimeSpan.FromSeconds(30))
+            {
+                radarRefreshRequested = false;
             }
             if (settings.ResetNotificationsEnabled)
             {
@@ -958,6 +966,13 @@ namespace CodexUsageOverlay
                 graphics.DrawString(detail, detailFont, detailBrush,
                     new Rectangle(panel.Left + 10, panel.Top + 23, Math.Max(40, ResetSourceBounds.Width - 12), 19), detailFormat);
 
+                DrawInlineBox(graphics, ResetRadarRefreshBounds,
+                    radarRefreshRequested ? Color.FromArgb(70, dot.R, dot.G, dot.B) :
+                        Color.FromArgb(34, textColor.R, textColor.G, textColor.B),
+                    radarRefreshRequested ? semanticBorder : borderColor);
+                graphics.DrawString(radarRefreshRequested ? "检测中..." : "重新检测",
+                    titleFont, titleBrush, ResetRadarRefreshBounds, center);
+
                 bool enabled = visualSettings.ResetNotificationsEnabled;
                 Color toggleFill = enabled
                     ? Color.FromArgb(105, dot.R, dot.G, dot.B)
@@ -987,8 +1002,9 @@ namespace CodexUsageOverlay
         private Rectangle RefreshMinusBounds { get { Rectangle box = RefreshValueBounds; return new Rectangle(box.Left, box.Top, 38, box.Height); } }
         private Rectangle RefreshPlusBounds { get { Rectangle box = RefreshValueBounds; return new Rectangle(box.Right - 38, box.Top, 38, box.Height); } }
         private Rectangle ResetRadarPanelBounds { get { return new Rectangle(16, 140, Math.Max(180, CanvasWidth - 32), 46); } }
+        private Rectangle ResetRadarRefreshBounds { get { Rectangle panel = ResetRadarPanelBounds; return new Rectangle(panel.Right - 184, panel.Top + 9, 82, 28); } }
         private Rectangle ResetNotificationBounds { get { Rectangle panel = ResetRadarPanelBounds; return new Rectangle(panel.Right - 92, panel.Top + 9, 82, 28); } }
-        private Rectangle ResetSourceBounds { get { Rectangle panel = ResetRadarPanelBounds; return new Rectangle(panel.Left, panel.Top, Math.Max(80, panel.Width - 100), panel.Height); } }
+        private Rectangle ResetSourceBounds { get { Rectangle panel = ResetRadarPanelBounds; return new Rectangle(panel.Left, panel.Top, Math.Max(80, panel.Width - 192), panel.Height); } }
         private Rectangle ExitBounds { get { return new Rectangle(Math.Max(228, CanvasWidth - 208), 198, 60, 30); } }
         private Rectangle CancelBounds { get { return new Rectangle(Math.Max(296, CanvasWidth - 140), 198, 60, 30); } }
         private Rectangle SaveBounds { get { return new Rectangle(Math.Max(364, CanvasWidth - 72), 198, 60, 30); } }
@@ -1173,7 +1189,8 @@ namespace CodexUsageOverlay
             if (e.Button != MouseButtons.Left || !settingsExpanded || draftSettings == null)
                 return;
 
-            if (ResetNotificationBounds.Contains(logicalLocation)) ToggleResetNotifications();
+            if (ResetRadarRefreshBounds.Contains(logicalLocation)) RequestRadarRefresh();
+            else if (ResetNotificationBounds.Contains(logicalLocation)) ToggleResetNotifications();
             else if (ResetSourceBounds.Contains(logicalLocation)) OpenRadarSource();
             else if (FontPreviousBounds.Contains(logicalLocation)) CycleFont(-1);
             else if (FontNextBounds.Contains(logicalLocation)) CycleFont(1);
@@ -1210,7 +1227,9 @@ namespace CodexUsageOverlay
             Point logicalLocation = ToLogicalPoint(e.Location);
             bool hovered = GearBounds.Contains(logicalLocation);
             bool resetHovered = ResetRadarBounds.Contains(logicalLocation) ||
-                (settingsExpanded && ResetSourceBounds.Contains(logicalLocation));
+                (settingsExpanded && (ResetSourceBounds.Contains(logicalLocation) ||
+                    ResetRadarRefreshBounds.Contains(logicalLocation) ||
+                    ResetNotificationBounds.Contains(logicalLocation)));
             if (hovered != gearHovered || resetHovered != radarHovered)
             {
                 gearHovered = hovered;
@@ -1269,6 +1288,16 @@ namespace CodexUsageOverlay
         private void ToggleResetNotifications()
         {
             draftSettings.ResetNotificationsEnabled = !draftSettings.ResetNotificationsEnabled;
+            RefreshInlinePanel();
+        }
+
+        private void RequestRadarRefresh()
+        {
+            if (radarRefreshRequested)
+                return;
+            radarRefreshRequested = true;
+            radarRefreshRequestedUtc = DateTime.UtcNow;
+            resetRadarService.RequestRefresh(true);
             RefreshInlinePanel();
         }
 
