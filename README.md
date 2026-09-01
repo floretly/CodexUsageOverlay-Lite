@@ -25,6 +25,8 @@ Codex Usage Overlay Lite 运行在 Windows 桌面上，不修改 Codex 主程序
 - 可选显示公开来源的重置提醒卡片。
 - 对来源、时间格式和日期范围进行校验，只接受符合规则的数据。
 - 单条新格式事件无法识别时会安全跳过，不再导致整份雷达数据离线。
+- 系统代理连接失败时会自动尝试 HTTPS 直连，不修改 Windows 代理设置。
+- 人工确认事件没有 X 原帖时，点击雷达会打开 Codex Runway 数据页面。
 - 可选择是否启用 Windows 通知。
 - 该提醒是非官方信息，不代表 OpenAI 承诺，也不保证每个账户同时生效。
 
@@ -66,10 +68,10 @@ Codex Usage Overlay Lite 运行在 Windows 桌面上，不修改 Codex 主程序
 从本仓库的 [Releases](https://github.com/floretly/CodexUsageOverlay-Lite/releases) 下载当前安装包：
 
 直接下载：
-https://github.com/floretly/CodexUsageOverlay-Lite/releases/download/v1.0.15/CodexUsageOverlay-Lite-Setup-1.0.15.exe
+https://github.com/floretly/CodexUsageOverlay-Lite/releases/download/v1.0.16/CodexUsageOverlay-Lite-Setup-1.0.16.exe
 
 ```text
-CodexUsageOverlay-Lite-Setup-1.0.15.exe
+CodexUsageOverlay-Lite-Setup-1.0.16.exe
 ```
 
 SHA-256 校验值在同一 Release 的 `SHA256SUMS.txt` 中。
@@ -90,7 +92,7 @@ SHA-256 校验值在同一 Release 的 `SHA256SUMS.txt` 中。
 静默安装参数：
 
 ```powershell
-.\CodexUsageOverlay-Lite-Setup-1.0.15.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS
+.\CodexUsageOverlay-Lite-Setup-1.0.16.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS
 ```
 
 ### 从源码构建

@@ -204,7 +204,7 @@ namespace CodexUsageOverlay
     internal sealed class ResetRadarService : IDisposable
     {
         public const string FeedUrl = "https://www.codexrunway.com/api/status.json";
-        public const string SiteUrl = "https://www.codexrunway.com/";
+        public const string SiteUrl = "https://www.codexrunway.com/zh.html";
 
         private const int RefreshMinutes = 10;
         private const int OfflineRetrySeconds = 30;
@@ -358,7 +358,30 @@ namespace CodexUsageOverlay
         private static string DownloadPayload()
         {
             ServicePointManager.SecurityProtocol |= (SecurityProtocolType)3072;
+            try
+            {
+                return DownloadPayload(false);
+            }
+            catch (WebException proxyError)
+            {
+                try
+                {
+                    return DownloadPayload(true);
+                }
+                catch (Exception directError)
+                {
+                    throw new WebException(
+                        "系统代理与直连均无法连接重置雷达: " + directError.Message,
+                        proxyError);
+                }
+            }
+        }
+
+        private static string DownloadPayload(bool bypassSystemProxy)
+        {
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(FeedUrl);
+            if (bypassSystemProxy)
+                request.Proxy = null;
             request.Method = "GET";
             request.Accept = "application/json";
             request.UserAgent = ProductInfo.UserAgent;
@@ -678,8 +701,8 @@ namespace CodexUsageOverlay
                 EffectiveAt = effectiveAt,
                 OccurrenceAt = normalizedKind == "reset_completed" ? (effectiveAt ?? announcedAt) : (DateTimeOffset?)null,
                 PostId = item.source == null ? String.Empty : item.source.postId,
-                SourceUrl = item.source == null || item.source.origin == "operator" ?
-                    String.Empty : item.source.url,
+                SourceUrl = item.source == null ? String.Empty :
+                    (item.source.origin == "operator" ? ResetRadarService.SiteUrl : item.source.url),
                 Confidence = item.confidence,
                 Plans = item.scope.plans,
                 Windows = item.scope.windows

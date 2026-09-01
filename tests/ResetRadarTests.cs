@@ -87,7 +87,7 @@ internal static class ResetRadarTests
             "2026-08-25T14:30:00Z",
             OperatorConfirmedCompletedEvent("2026-08-25T14:30:00Z")), now);
         Assert(data.Status == ResetRadarStatus.CompletedToday, data.Status.ToString());
-        Assert(String.IsNullOrEmpty(data.SourceUrl), data.SourceUrl);
+        Assert(data.SourceUrl == ResetRadarService.SiteUrl, data.SourceUrl);
         Assert(data.EvidencePostId == "op_test-reset-1014", data.EvidencePostId);
     }
 
@@ -99,8 +99,9 @@ internal static class ResetRadarTests
             "2026-09-01T01:00:00Z",
             OperatorConfirmedScheduledEvent("2026-09-01T00:30:00Z", "2026-09-01T03:00:00Z")), now);
         Assert(data.Status == ResetRadarStatus.ScheduledToday, data.Status.ToString());
-        Assert(String.IsNullOrEmpty(data.SourceUrl), data.SourceUrl);
+        Assert(data.SourceUrl == ResetRadarService.SiteUrl, data.SourceUrl);
         Assert(data.EvidencePostId == "op_test-schedule-1015", data.EvidencePostId);
+        Assert(ResetRadarDisplay.ShouldShow(data, now), "operator-confirmed schedule was not clickable");
     }
 
     private static void InvalidEventDoesNotRejectValidFeed()
