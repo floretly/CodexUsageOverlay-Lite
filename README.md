@@ -2,7 +2,7 @@
 
 一个面向 Windows Codex 桌面应用的轻量级用量悬浮条。它会跟随 Codex 窗口，在顶部显示常用状态，让你不用离开当前会话就能了解 Codex 的使用情况。
 
-本项目是私有仓库中的个人衍生版本，重点是：界面紧凑、信息直接、安装简单、默认不遮挡 Codex 左侧导航和工作区。
+本项目是面向个人使用场景的轻量版本，重点是：界面紧凑、信息直接、安装简单、默认不遮挡 Codex 左侧导航和工作区。
 
 ## 产品介绍
 
@@ -24,6 +24,7 @@ Codex Usage Overlay Lite 运行在 Windows 桌面上，不修改 Codex 主程序
 
 - 可选显示公开来源的重置提醒卡片。
 - 对来源、时间格式和日期范围进行校验，只接受符合规则的数据。
+- 单条新格式事件无法识别时会安全跳过，不再导致整份雷达数据离线。
 - 可选择是否启用 Windows 通知。
 - 该提醒是非官方信息，不代表 OpenAI 承诺，也不保证每个账户同时生效。
 
@@ -65,10 +66,10 @@ Codex Usage Overlay Lite 运行在 Windows 桌面上，不修改 Codex 主程序
 从本仓库的 [Releases](https://github.com/floretly/CodexUsageOverlay-Lite/releases) 下载当前安装包：
 
 直接下载：
-https://github.com/floretly/CodexUsageOverlay-Lite/releases/download/v1.0.14/CodexUsageOverlay-Lite-Setup-1.0.14.exe
+https://github.com/floretly/CodexUsageOverlay-Lite/releases/download/v1.0.15/CodexUsageOverlay-Lite-Setup-1.0.15.exe
 
 ```text
-CodexUsageOverlay-Lite-Setup-1.0.14.exe
+CodexUsageOverlay-Lite-Setup-1.0.15.exe
 ```
 
 SHA-256 校验值在同一 Release 的 `SHA256SUMS.txt` 中。
@@ -89,7 +90,7 @@ SHA-256 校验值在同一 Release 的 `SHA256SUMS.txt` 中。
 静默安装参数：
 
 ```powershell
-.\CodexUsageOverlay-Lite-Setup-1.0.14.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS
+.\CodexUsageOverlay-Lite-Setup-1.0.15.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS
 ```
 
 ### 从源码构建

@@ -492,7 +492,19 @@ namespace CodexUsageOverlay
 
                 List<ParsedResetEvent> events = new List<ParsedResetEvent>();
                 foreach (ResetFeedEvent item in feed.events)
-                    events.Add(ParseEvent(item));
+                {
+                    try
+                    {
+                        events.Add(ParseEvent(item));
+                    }
+                    catch (InvalidDataException)
+                    {
+                        // A newly introduced event shape must not take the whole
+                        // verified feed offline while older valid events remain.
+                    }
+                }
+                if (feed.events.Length > 0 && events.Count == 0)
+                    throw new InvalidDataException("重置事件均无法验证");
 
                 TimeSpan age = lastSuccessful.HasValue
                     ? nowUtc - lastSuccessful.Value.ToUniversalTime()
@@ -642,8 +654,7 @@ namespace CodexUsageOverlay
             if (!RationaleMatches(normalizedKind, item.rationale)) throw new InvalidDataException("重置事件解释与类型不匹配");
             if (item.scope == null || item.scope.plans == null || item.scope.windows == null)
                 throw new InvalidDataException("重置事件缺少适用范围");
-            bool operatorConfirmed = normalizedKind == "reset_completed" &&
-                item.rationale == "Operator-confirmed Codex quota reset without an X announcement.";
+            bool operatorConfirmed = IsOperatorConfirmed(normalizedKind, item.rationale);
             if (item.source == null && !operatorConfirmed)
                 throw new InvalidDataException("重置事件缺少来源");
             if (operatorConfirmed && item.source != null && item.source.origin == "operator")
@@ -724,12 +735,21 @@ namespace CodexUsageOverlay
             if (kind == "reset_completed") return rationale == "Explicit Codex quota reset announcement." ||
                 rationale == "Operator-confirmed Codex quota reset without an X announcement.";
             if (kind == "reset_scheduled") return rationale == "Explicit Codex quota reset schedule." ||
-                rationale == "High-probability Codex quota reset preview inferred from context.";
+                rationale == "High-probability Codex quota reset preview inferred from context." ||
+                rationale == "Operator-confirmed Codex quota reset schedule without an X announcement.";
             if (kind == "banked_reset") return rationale == "Banked reset announcement; not a completed reset." ||
                 rationale == "Explicit Codex reset-bank credit announcement.";
             if (kind == "limit_increase") return rationale == "Quota limit increase announcement; not a reset.";
             return rationale == "Not a clear reset signal." ||
                 rationale == "Relevant announcement could not be classified safely.";
+        }
+
+        private static bool IsOperatorConfirmed(string kind, string rationale)
+        {
+            return (kind == "reset_completed" &&
+                    rationale == "Operator-confirmed Codex quota reset without an X announcement.") ||
+                (kind == "reset_scheduled" &&
+                    rationale == "Operator-confirmed Codex quota reset schedule without an X announcement.");
         }
 
         private static DateTimeOffset ParseTimestamp(string value, string field)

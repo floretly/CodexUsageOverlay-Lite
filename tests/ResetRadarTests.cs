@@ -10,6 +10,8 @@ internal static class ResetRadarTests
     {
         Run("completed reset is today", CompletedResetIsToday);
         Run("operator-confirmed reset rationale is accepted", OperatorConfirmedResetRationaleIsAccepted);
+        Run("operator-confirmed reset schedule is accepted", OperatorConfirmedResetScheduleIsAccepted);
+        Run("invalid event does not reject valid feed", InvalidEventDoesNotRejectValidFeed);
         Run("banked reset type alias is accepted", BankedResetTypeAliasIsAccepted);
         Run("future schedule today is pending", FutureScheduleTodayIsPending);
         Run("global scheduled reset preview is accepted", GlobalScheduledResetPreviewIsAccepted);
@@ -87,6 +89,32 @@ internal static class ResetRadarTests
         Assert(data.Status == ResetRadarStatus.CompletedToday, data.Status.ToString());
         Assert(String.IsNullOrEmpty(data.SourceUrl), data.SourceUrl);
         Assert(data.EvidencePostId == "op_test-reset-1014", data.EvidencePostId);
+    }
+
+    private static void OperatorConfirmedResetScheduleIsAccepted()
+    {
+        DateTimeOffset now = DateTimeOffset.Parse("2026-09-01T01:00:00Z");
+        ResetRadarData data = Parse(Feed(
+            "2026-09-01T01:00:00Z",
+            "2026-09-01T01:00:00Z",
+            OperatorConfirmedScheduledEvent("2026-09-01T00:30:00Z", "2026-09-01T03:00:00Z")), now);
+        Assert(data.Status == ResetRadarStatus.ScheduledToday, data.Status.ToString());
+        Assert(String.IsNullOrEmpty(data.SourceUrl), data.SourceUrl);
+        Assert(data.EvidencePostId == "op_test-schedule-1015", data.EvidencePostId);
+    }
+
+    private static void InvalidEventDoesNotRejectValidFeed()
+    {
+        DateTimeOffset now = DateTimeOffset.Parse("2026-09-01T01:00:00Z");
+        string events = CompletedEvent("2026-09-01T00:30:00Z", "1016") + "," +
+            Event("reset_scheduled", "2026-09-01T00:40:00Z", "2026-09-01T03:00:00Z", "1017",
+                "Unknown future rationale.", "global");
+        ResetRadarData data = Parse(Feed(
+            "2026-09-01T01:00:00Z",
+            "2026-09-01T01:00:00Z",
+            events), now);
+        Assert(data.Status == ResetRadarStatus.CompletedToday, data.Status.ToString());
+        Assert(data.EvidencePostId == "1016", data.EvidencePostId);
     }
 
     private static void GlobalScheduledResetPreviewIsAccepted()
@@ -342,6 +370,16 @@ internal static class ResetRadarTests
             "\"source\":{\"origin\":\"operator\",\"postId\":\"op_test-reset-1014\"},\"confidence\":0.95," +
             "\"rationale\":\"Operator-confirmed Codex quota reset without an X announcement.\"," +
             "\"text\":\"Operator-confirmed reset.\"}";
+    }
+
+    private static string OperatorConfirmedScheduledEvent(string announcedAt, string effectiveAt)
+    {
+        return "{\"kind\":\"reset_scheduled\",\"resetType\":\"global\",\"announcedAt\":\"" + announcedAt + "\"," +
+            "\"effectiveAt\":\"" + effectiveAt + "\"," +
+            "\"scope\":{\"plans\":[\"all\"],\"windows\":[\"weekly\"]}," +
+            "\"source\":{\"origin\":\"operator\",\"postId\":\"op_test-schedule-1015\"},\"confidence\":0.95," +
+            "\"rationale\":\"Operator-confirmed Codex quota reset schedule without an X announcement.\"," +
+            "\"text\":\"Operator-confirmed reset schedule.\"}";
     }
 
     private static string BankedCompletedEvent(string announcedAt, string postId)
