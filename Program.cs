@@ -703,7 +703,7 @@ namespace CodexUsageOverlay
                 using (Font font = CreateDisplayFont(visualSettings))
                 using (StringFormat format = UiRendering.CreateTextFormat())
                 {
-                    format.Alignment = StringAlignment.Center;
+                    format.Alignment = StringAlignment.Far;
                     format.LineAlignment = StringAlignment.Center;
                     format.Trimming = StringTrimming.EllipsisCharacter;
                     format.FormatFlags |= StringFormatFlags.NoWrap;
