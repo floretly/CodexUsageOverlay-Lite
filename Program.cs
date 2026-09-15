@@ -480,9 +480,9 @@ namespace CodexUsageOverlay
                 if (IsAbnormalRateLimitStatus(usage.RateLimitStatus))
                     sections.Add(usage.RateLimitStatus);
                 if (usage.AvailableResetCredits.HasValue)
-                    sections.Add("重置券" + usage.AvailableResetCredits.Value.ToString(CultureInfo.InvariantCulture));
-                sections.Add("Token " + tokensText);
-                return String.Join(" | ", sections.ToArray());
+                    sections.Add("重置券 " + usage.AvailableResetCredits.Value.ToString(CultureInfo.InvariantCulture));
+                sections.Add(tokensText + " Token");
+                return String.Join("   ", sections.ToArray());
             }
 
             if (availableTextWidth >= 390)
@@ -492,9 +492,9 @@ namespace CodexUsageOverlay
                 sections.Add(shortQuota);
                 sections.Add(weeklyQuota);
                 if (usage.AvailableResetCredits.HasValue)
-                    sections.Add("重置券" + usage.AvailableResetCredits.Value.ToString(CultureInfo.InvariantCulture));
-                sections.Add("Token " + tokensText);
-                return String.Join(" | ", sections.ToArray());
+                    sections.Add("重置券 " + usage.AvailableResetCredits.Value.ToString(CultureInfo.InvariantCulture));
+                sections.Add(tokensText + " Token");
+                return String.Join("   ", sections.ToArray());
             }
 
             sections.Add(shortQuota);
@@ -502,16 +502,16 @@ namespace CodexUsageOverlay
             if (IsAbnormalRateLimitStatus(usage.RateLimitStatus))
                 sections.Add(usage.RateLimitStatus);
             if (usage.AvailableResetCredits.HasValue)
-                sections.Add("重置券" + usage.AvailableResetCredits.Value.ToString(CultureInfo.InvariantCulture));
-            sections.Add("Token " + tokensText);
-            return String.Join(" | ", sections.ToArray());
+                sections.Add("重置券 " + usage.AvailableResetCredits.Value.ToString(CultureInfo.InvariantCulture));
+            sections.Add(tokensText + " Token");
+            return String.Join("   ", sections.ToArray());
         }
 
         private static string BuildWeeklyQuotaText(UsageData usage, bool hasQuotaData)
         {
-            string result = "周剩余 " + FormatRemaining(usage.WeeklyRemaining, hasQuotaData);
+            string result = "本周 " + FormatRemaining(usage.WeeklyRemaining, hasQuotaData);
             if (HasResetText(usage.WeeklyResetText))
-                result += "·" + FormatResetText(usage.WeeklyResetText);
+                result += " · " + FormatResetText(usage.WeeklyResetText);
             return result;
         }
 
@@ -528,7 +528,7 @@ namespace CodexUsageOverlay
 
             string result = label + " " + FormatRemaining(usage.ShortRemaining, hasQuotaData);
             if (HasResetText(usage.ShortResetText))
-                result += "·" + FormatResetText(usage.ShortResetText);
+                result += " · " + FormatResetText(usage.ShortResetText);
             return result;
         }
 
@@ -567,7 +567,10 @@ namespace CodexUsageOverlay
         {
             if (String.IsNullOrWhiteSpace(resetText) || resetText == "—" || resetText == "待刷新")
                 return resetText;
-            return resetText.Replace(" ", String.Empty) + "重置";
+            Match date = Regex.Match(resetText.Trim(), @"^(\d{1,2})月(\d{1,2})日\s*(.+)$");
+            if (date.Success)
+                return date.Groups[1].Value + "/" + date.Groups[2].Value + " " + date.Groups[3].Value;
+            return resetText.Trim();
         }
 
         private void RenderLayered()
@@ -771,18 +774,11 @@ namespace CodexUsageOverlay
             Directory.CreateDirectory(outputDirectory);
             try
             {
-                displayText = "PRO | 5小时 86%·14:01重置 | 周剩余 58%·8月16日11:24重置 | 重置券2 | Token 3.5亿";
+                displayText = "PLUS  5小时 65% · 14:15   本周 72% · 9/21 08:57   重置券 3   27.1亿 Token";
                 resetRadar = new ResetRadarData
                 {
-                    Status = ResetRadarStatus.ScheduledToday,
-                    StatusLabel = "今日有预告",
-                    Detail = "Tibo 已预告重置 · 预计 8月10日 15:00—8月11日 14:59（本地时间）",
-                    ScopeLabel = "全部计划 · 周额度",
-                    SourceUrl = "https://x.com/thsottiaux/status/2086189414292865249",
-                    EvidencePostId = "2086189414292865249",
-                    EffectiveAt = new DateTimeOffset(2026, 8, 10, 15, 0, 0, TimeSpan.FromHours(8)),
-                    EffectiveUntil = new DateTimeOffset(2026, 8, 11, 14, 59, 0, TimeSpan.FromHours(8)),
-                    Confidence = 0.92d,
+                    Status = ResetRadarStatus.NoSignal,
+                    StatusLabel = "暂无重置信号",
                     NetworkAvailable = true
                 };
                 resetRadarDisplayNow = new DateTimeOffset(2026, 8, 10, 10, 2, 27, TimeSpan.FromHours(8));
@@ -809,6 +805,19 @@ namespace CodexUsageOverlay
 
                 OverlaySettings bannerSettings = originalSettings.Clone();
                 bannerSettings.Theme = "RainbowText";
+                resetRadar = new ResetRadarData
+                {
+                    Status = ResetRadarStatus.ScheduledToday,
+                    StatusLabel = "今日有预告",
+                    Detail = "Tibo 已预告重置 · 预计 8月10日 15:00—8月11日 14:59（本地时间）",
+                    ScopeLabel = "全部计划 · 周额度",
+                    SourceUrl = "https://x.com/thsottiaux/status/2086189414292865249",
+                    EvidencePostId = "2086189414292865249",
+                    EffectiveAt = new DateTimeOffset(2026, 8, 10, 15, 0, 0, TimeSpan.FromHours(8)),
+                    EffectiveUntil = new DateTimeOffset(2026, 8, 11, 14, 59, 0, TimeSpan.FromHours(8)),
+                    Confidence = 0.92d,
+                    NetworkAvailable = true
+                };
                 resetRadarBanner.ExportPreviews(
                     outputDirectory,
                     resetRadar,
@@ -1040,44 +1049,73 @@ namespace CodexUsageOverlay
         private void DrawResetRadar(Graphics graphics, ResetRadarData radar, OverlaySettings visualSettings)
         {
             Rectangle bounds = ResetRadarBounds;
+            bool quietNoSignal = radar.Status == ResetRadarStatus.NoSignal;
             Color fill;
             Color border;
             Color dot;
             GetResetRadarColors(radar.Status, out fill, out border, out dot);
-            if (radarHovered)
-                fill = Color.FromArgb(Math.Min(245, fill.A + 35), fill.R, fill.G, fill.B);
-
-            using (GraphicsPath path = RoundedRectangle(bounds, 8))
-            using (Brush fillBrush = new SolidBrush(fill))
-            using (Pen borderPen = new Pen(border, 1f))
+            Color labelColor = Color.White;
+            if (quietNoSignal)
             {
-                graphics.FillPath(fillBrush, path);
-                graphics.DrawPath(borderPen, path);
+                bool lightSurface = visualSettings.Theme == "RainbowText" ||
+                    visualSettings.Theme == "FrostedGlass";
+                labelColor = lightSurface
+                    ? Color.FromArgb(255, 72, 101, 124)
+                    : Color.FromArgb(225, 236, 244, 250);
+                dot = lightSurface
+                    ? Color.FromArgb(255, 111, 155, 184)
+                    : Color.FromArgb(255, 163, 207, 239);
+                if (radarHovered)
+                {
+                    using (GraphicsPath hoverPath = RoundedRectangle(bounds, 8))
+                    using (Brush hoverBrush = new SolidBrush(lightSurface
+                        ? Color.FromArgb(30, 72, 101, 124)
+                        : Color.FromArgb(38, 255, 255, 255)))
+                        graphics.FillPath(hoverBrush, hoverPath);
+                }
+            }
+            else
+            {
+                if (radarHovered)
+                    fill = Color.FromArgb(Math.Min(245, fill.A + 35), fill.R, fill.G, fill.B);
+
+                using (GraphicsPath path = RoundedRectangle(bounds, 8))
+                using (Brush fillBrush = new SolidBrush(fill))
+                using (Pen borderPen = new Pen(border, 1f))
+                {
+                    graphics.FillPath(fillBrush, path);
+                    graphics.DrawPath(borderPen, path);
+                }
             }
 
             int dotSize = bounds.Width <= 24 ? 8 : 6;
             int dotLeft = bounds.Width <= 24 ? bounds.Left + (bounds.Width - dotSize) / 2 : bounds.Left + 8;
             int dotTop = bounds.Top + (bounds.Height - dotSize) / 2;
             using (Brush dotBrush = new SolidBrush(dot))
-            using (Pen pulse = new Pen(Color.FromArgb(130, dot.R, dot.G, dot.B), 1f))
             {
-                graphics.DrawEllipse(pulse, dotLeft - 2, dotTop - 2, dotSize + 4, dotSize + 4);
+                if (!quietNoSignal)
+                {
+                    using (Pen pulse = new Pen(Color.FromArgb(130, dot.R, dot.G, dot.B), 1f))
+                        graphics.DrawEllipse(pulse, dotLeft - 2, dotTop - 2, dotSize + 4, dotSize + 4);
+                }
                 graphics.FillEllipse(dotBrush, dotLeft, dotTop, dotSize, dotSize);
             }
 
             if (bounds.Width > 24)
             {
                 using (Font font = CreateDisplayFont(visualSettings, 8f))
-                using (Brush text = new SolidBrush(Color.White))
+                using (Brush text = new SolidBrush(labelColor))
                 using (StringFormat format = UiRendering.CreateTextFormat())
                 {
                     format.Alignment = StringAlignment.Center;
                     format.LineAlignment = StringAlignment.Center;
                     format.Trimming = StringTrimming.EllipsisCharacter;
                     format.FormatFlags |= StringFormatFlags.NoWrap;
-                    string pillLabel = ResetRadarDisplay.BuildPillLabel(
-                        radar,
-                        resetRadarDisplayNow ?? DateTimeOffset.Now);
+                    string pillLabel = quietNoSignal
+                        ? "暂无信号"
+                        : ResetRadarDisplay.BuildPillLabel(
+                            radar,
+                            resetRadarDisplayNow ?? DateTimeOffset.Now);
                     graphics.DrawString(pillLabel, font, text,
                         new Rectangle(bounds.Left + 17, bounds.Top, bounds.Width - 20, bounds.Height), format);
                 }
