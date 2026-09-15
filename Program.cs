@@ -602,6 +602,7 @@ namespace CodexUsageOverlay
                 Brush background;
                 OverlaySettings visualSettings = settingsExpanded && draftSettings != null ? draftSettings : settings;
                 bool rainbowText = visualSettings.Theme == "RainbowText";
+                bool framelessHeader = rainbowText || visualSettings.Theme == "FrostedGlass";
 
                 if (visualSettings.Theme == "FrostedGlass")
                 {
@@ -609,9 +610,7 @@ namespace CodexUsageOverlay
                     borderColor = Color.FromArgb(150, 255, 255, 255);
                     textColor = Color.FromArgb(255, 28, 55, 78);
                     glowColor = Color.FromArgb(18, 255, 255, 255);
-                    background = new LinearGradientBrush(pill,
-                        Color.FromArgb(205, 242, 248, 252), Color.FromArgb(155, 170, 196, 216),
-                        LinearGradientMode.Vertical);
+                    background = null;
                 }
                 else if (visualSettings.Theme == "OrangeGradient")
                 {
@@ -657,7 +656,7 @@ namespace CodexUsageOverlay
                         LinearGradientMode.Horizontal);
                 }
 
-                if (rainbowText)
+                if (framelessHeader)
                 {
                     if (settingsExpanded)
                     {
