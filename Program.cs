@@ -509,7 +509,7 @@ namespace CodexUsageOverlay
 
         private static string BuildWeeklyQuotaText(UsageData usage, bool hasQuotaData)
         {
-            string result = "本周  " + FormatRemaining(usage.WeeklyRemaining, hasQuotaData);
+            string result = "本周 " + FormatRemaining(usage.WeeklyRemaining, hasQuotaData);
             if (HasResetText(usage.WeeklyResetText))
                 result += " · " + FormatResetText(usage.WeeklyResetText);
             return result;
@@ -526,7 +526,7 @@ namespace CodexUsageOverlay
                     : minutes.ToString(CultureInfo.InvariantCulture) + "分钟";
             }
 
-            string result = label + "  " + FormatRemaining(usage.ShortRemaining, hasQuotaData);
+            string result = label + " " + FormatRemaining(usage.ShortRemaining, hasQuotaData);
             if (HasResetText(usage.ShortResetText))
                 result += " · " + FormatResetText(usage.ShortResetText);
             return result;
@@ -596,6 +596,7 @@ namespace CodexUsageOverlay
                 int canvasHeight = CanvasHeight;
                 Color borderColor = Color.FromArgb(105, 48, 180, 255);
                 Color textColor = Color.FromArgb(255, 21, 120, 164);
+                Color glowColor = Color.FromArgb(105, 255, 255, 255);
                 OverlaySettings visualSettings = settingsExpanded && draftSettings != null ? draftSettings : settings;
                 bool rainbowText = visualSettings.Theme == "RainbowText";
 
@@ -603,16 +604,19 @@ namespace CodexUsageOverlay
                 {
                     borderColor = Color.FromArgb(150, 255, 255, 255);
                     textColor = Color.FromArgb(255, 28, 55, 78);
+                    glowColor = Color.FromArgb(92, 255, 255, 255);
                 }
                 else if (visualSettings.Theme == "OrangeGradient")
                 {
                     borderColor = Color.FromArgb(180, 216, 95, 49);
                     textColor = Color.FromArgb(255, 216, 95, 49);
+                    glowColor = Color.FromArgb(112, 255, 255, 255);
                 }
                 else if (visualSettings.Theme == "PinkGradient")
                 {
                     borderColor = Color.FromArgb(180, 195, 63, 145);
                     textColor = Color.FromArgb(255, 195, 63, 145);
+                    glowColor = Color.FromArgb(112, 255, 255, 255);
                 }
                 else if (visualSettings.Theme == "Custom")
                 {
@@ -624,11 +628,13 @@ namespace CodexUsageOverlay
                         (int)Math.Round(custom.G * scale),
                         (int)Math.Round(custom.B * scale));
                     borderColor = Color.FromArgb(180, textColor.R, textColor.G, textColor.B);
+                    glowColor = Color.FromArgb(112, 255, 255, 255);
                 }
                 else if (rainbowText)
                 {
                     borderColor = Color.Transparent;
                     textColor = Color.FromArgb(255, 25, 105, 145);
+                    glowColor = Color.FromArgb(82, 255, 255, 255);
                 }
 
                 if (settingsExpanded)
@@ -651,13 +657,29 @@ namespace CodexUsageOverlay
                 using (Font font = UiRendering.CreateTextFont(
                     visualSettings.FontName,
                     OverlaySettings.ClampFontSize(visualSettings.FontSize),
-                    FontStyle.Regular))
+                    FontStyle.Bold))
                 using (StringFormat format = UiRendering.CreateTextFormat())
                 {
                     format.Alignment = StringAlignment.Far;
                     format.LineAlignment = StringAlignment.Center;
                     format.Trimming = StringTrimming.EllipsisCharacter;
                     format.FormatFlags |= StringFormatFlags.NoWrap;
+
+                    int glowRadius = settingsExpanded ? 1 : 2;
+                    for (int x = -glowRadius; x <= glowRadius; x++)
+                    {
+                        for (int y = -glowRadius; y <= glowRadius; y++)
+                        {
+                            if (x == 0 && y == 0)
+                                continue;
+                            int distance = Math.Abs(x) + Math.Abs(y);
+                            int alpha = distance <= 2 ? glowColor.A : Math.Max(6, glowColor.A / 3);
+                            using (Brush glow = new SolidBrush(Color.FromArgb(alpha, glowColor.R, glowColor.G, glowColor.B)))
+                                graphics.DrawString(displayText, font, glow,
+                                    new RectangleF(box.X + x, box.Y + y, box.Width, box.Height), format);
+                        }
+                    }
+
                     using (Brush text = CreateDisplayTextBrush(box, textColor, rainbowText))
                         graphics.DrawString(displayText, font, text, box, format);
                 }
@@ -674,6 +696,8 @@ namespace CodexUsageOverlay
                         graphics.FillPath(gearHighlight, gearHighlightPath);
                 }
 
+                using (Pen divider = new Pen(Color.FromArgb(70, textColor.R, textColor.G, textColor.B), 1f))
+                    graphics.DrawLine(divider, gear.Left, 6, gear.Left, HeaderHeight - 6);
                 using (Font gearFont = new Font("Segoe MDL2 Assets", 10f, FontStyle.Regular, GraphicsUnit.Point))
                 using (Brush gearBrush = new SolidBrush(textColor))
                 using (StringFormat gearFormat = new StringFormat())
@@ -1077,7 +1101,7 @@ namespace CodexUsageOverlay
                 using (Font font = UiRendering.CreateTextFont(
                     visualSettings.FontName,
                     Math.Max(7f, OverlaySettings.ClampFontSize(visualSettings.FontSize) - 0.5f),
-                    FontStyle.Regular))
+                    FontStyle.Bold))
                 using (Brush text = new SolidBrush(labelColor))
                 using (StringFormat format = UiRendering.CreateTextFormat())
                 {
