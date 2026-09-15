@@ -16,9 +16,12 @@ namespace CodexUsageOverlay
             return windowLeft + (windowWidth - overlayWidth) / 2;
         }
 
-        internal static int GetCenteredContentLeft(int canvasWidth, int contentWidth)
+        internal static int GetCenteredContentLeft(
+            int canvasWidth,
+            int contentWidth,
+            int horizontalOffset = 0)
         {
-            return (canvasWidth - contentWidth) / 2;
+            return (canvasWidth - contentWidth) / 2 + horizontalOffset;
         }
 
         internal static Rectangle GetMainUsageBounds(

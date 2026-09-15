@@ -1,51 +1,47 @@
-# Design QA — Transparent, optically centered segmented header
+# Design QA — Percentage baseline and optical right offset
 
-- Original visual reference: `D:\ChatGPT Image 2026年9月15日 16_07_54.png`
-- Latest user override: remove the outer component background and correct horizontal centering
-- Raw implementation capture: `C:\Users\sothing\Documents\ChatGPT\额度组件\ui-preview\frosted-glass-collapsed.png`
-- Transparency checker preview: `C:\Users\sothing\Documents\ChatGPT\额度组件\ui-preview\transparent-centered-checker.png`
-- Combined comparison: `C:\Users\sothing\Documents\ChatGPT\额度组件\ui-preview\transparent-centered-comparison.png`
-- Implementation viewport: 720 × 30 logical pixels at 1× preview density
-- State: collapsed overlay, no reset signal, representative usage values
+- Source visual truth: `C:\Users\sothing\AppData\Local\Temp\codex-clipboard-760fc74f-adfc-4930-9a2c-7613265f880c.png`
+- Implementation screenshot: `C:\Users\sothing\Documents\ChatGPT\额度组件\ui-preview\frosted-glass-collapsed.png`
+- Transparency preview: `C:\Users\sothing\Documents\ChatGPT\额度组件\ui-preview\baseline-right-offset-checker.png`
+- Combined focused comparison: `C:\Users\sothing\Documents\ChatGPT\额度组件\ui-preview\baseline-right-offset-comparison.png`
+- Source pixels: 944 × 74; focused title-bar crop: 640 × 33, enlarged to 1440 × 74
+- Implementation pixels: 762 × 30 at the current 9 pt font scale, enlarged to 1440 × 60
+- State: collapsed overlay, no reset signal
 
-## Full-view comparison evidence
-
-The combined comparison stacks the source component above the updated implementation. The selected segmented information architecture is preserved: short-window quota, weekly quota, reset credits, Token count, radar state, dividers, and settings control. The latest user feedback intentionally overrides the source's white rounded outer panel; the checkerboard underneath the implementation makes the transparent surface visible.
-
-## Focused-region and pixel evidence
-
-The checker preview is the full 720 × 30 implementation centered within a neutral checkerboard. A direct alpha-channel scan of the raw PNG found visible bounds at `x=49..671` and `y=5..26`. Horizontal transparent margins are 49 px left and 48 px right, a one-pixel difference caused by integer rounding. All four corner alpha values are zero.
-
-## Required fidelity surfaces
-
-- Typography: user-selected font and size remain active; percentages and important status copy retain stronger emphasis.
-- Layout: the header content is centered from its measured width, and the overlay uses a 720 px base width that expands when live content needs more space.
-- Transparency: the outer panel fill, border, and shadow are removed. The title bar beneath the overlay remains visible.
-- Local grouping: tinted clock/calendar circles, reset-credit and Token pills, radar interaction state, and the settings circle remain visible because they communicate grouping or affordance.
-- Icons: Segoe Fluent Icons / Segoe MDL2 Assets remain sharp across DPI scales.
-
-## Comparison history
+## Findings
 
 ### First pass
 
-- P1: the visible content could overflow the 660 px canvas; the left edge was then clamped to 6 px, creating unequal margins and a right-shifted appearance.
-- P1: the outer white panel, border, and shadow conflicted with the latest transparency request.
+- P2 — The two large percentage values were geometrically centered in the 30 px header, but their larger font metrics placed their visible baseline slightly below adjacent labels and reset times.
+- P2 — The content group needed a small rightward optical offset relative to its mathematically centered position.
 
 ### Fixes
 
-- Replaced the asymmetric left clamp with measured-width centering.
-- Increased the base canvas from 660 px to 720 px and added automatic expansion from the measured live content width.
-- Removed the outer panel fill, border, and shadow while preserving the internal information groups.
-- Added a regression test that asserts equal left and right content margins.
+- Applied a dedicated -1 logical-pixel vertical correction to only the short-window and weekly percentage values. Their size, weight, and emphasis hierarchy are unchanged.
+- Applied an 8 logical-pixel right offset to the complete visible content group. The value scales with the user-selected font size.
+- Kept the component window centered and the outer background fully transparent.
+- Added a regression test for the explicit optical right-offset calculation.
 
 ### Final pass
 
-- Pixel scan confirms transparent corners and balanced horizontal margins (49 px / 48 px).
-- Automated interaction and layout tests pass.
+- The focused comparison shows the percentage values sharing the visual text line with the surrounding labels and times.
+- At the current 9 pt setting, the rendered alpha bounds have 64 px left and 48 px right margins, confirming the intended 8 px rightward shift from center.
 - No actionable P0, P1, or P2 findings remain.
+
+## Required fidelity surfaces
+
+- Fonts and typography: both percentages retain the larger bold treatment while receiving only the baseline correction requested.
+- Spacing and layout rhythm: internal spacing is unchanged; the entire content group shifts together, preserving all group relationships.
+- Colors and visual tokens: pink, purple, blue, neutral text, and transparent outer treatment are unchanged.
+- Image and icon fidelity: system icon rendering and high-DPI behavior are unchanged.
+- Copy and content: all live usage fields remain in the same order and interaction regions remain mapped to their rendered positions.
+
+## Focused-region evidence
+
+The full component is only 30 px tall, so the combined comparison enlarges the user's marked title-bar crop and the revised implementation. This makes the percentage baselines and whole-group horizontal position directly inspectable without changing their proportions.
 
 ## Follow-up polish
 
-- P3: real text rasterization can place a few faint anti-aliased pixels asymmetrically, but the measured layout itself is centered and the visible alpha bounds differ by only one pixel.
+- P3: the final optical offset is subjective and can be changed in another small increment if the live title-bar composition still feels left-heavy.
 
 final result: passed

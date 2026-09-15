@@ -22,6 +22,14 @@ namespace CodexUsageOverlay
             Assert(left == right, "header content side margins were not equal");
         }
 
+        public static void HeaderContentSupportsOpticalRightOffset()
+        {
+            int centeredLeft = OverlayInteraction.GetCenteredContentLeft(720, 654);
+            int offsetLeft = OverlayInteraction.GetCenteredContentLeft(720, 654, 8);
+            Assert(offsetLeft - centeredLeft == 8,
+                "header content did not apply the requested optical right offset");
+        }
+
         public static void RightClickMainUsageRequestsExit()
         {
             Rectangle bounds = OverlayInteraction.GetMainUsageBounds(500, 28);

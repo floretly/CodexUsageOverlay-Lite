@@ -35,6 +35,7 @@ internal static class ResetRadarTests
         Run("text renders at mixed DPI scale", RenderingCompatibilityTests.TextRendersAtMixedDpiScale);
         Run("overlay stays centered in the Codex title bar", OverlayInteractionTests.OverlayStaysCentered);
         Run("header content stays centered inside the overlay", OverlayInteractionTests.HeaderContentStaysCentered);
+        Run("header content supports an optical right offset", OverlayInteractionTests.HeaderContentSupportsOpticalRightOffset);
         Run("right click main usage requests exit", OverlayInteractionTests.RightClickMainUsageRequestsExit);
         Run("other mouse buttons do not request exit", OverlayInteractionTests.OtherButtonsDoNotRequestExit);
         Run("right click outside main usage does not request exit", OverlayInteractionTests.RightClickOutsideMainUsageDoesNotRequestExit);

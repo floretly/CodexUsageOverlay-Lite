@@ -252,6 +252,8 @@ namespace CodexUsageOverlay
         private const int ExpandedHeight = 238;
         private const int BaseOverlayWidth = 720;
         private const int HeaderHorizontalMargin = 12;
+        private const int HeaderRightOffset = 8;
+        private const int EmphasisTextVerticalOffset = -1;
         private const string RunwayPageUrl = "https://www.codexrunway.com/zh.html";
 
         public OverlayForm(UsageService service, OverlaySettings settings)
@@ -751,7 +753,8 @@ namespace CodexUsageOverlay
                 int contentWidth = shortWidth + dividerBlock + weeklyWidth + dividerBlock + creditsWidth +
                     pillGap + tokenWidth + dividerBlock + radarWidth + dividerBlock + gearSize;
                 measuredHeaderContentWidth = contentWidth;
-                int x = OverlayInteraction.GetCenteredContentLeft(canvasWidth, contentWidth);
+                int x = OverlayInteraction.GetCenteredContentLeft(
+                    canvasWidth, contentWidth, ScaleHeaderSpacing(HeaderRightOffset));
                 int mainStart = x;
 
                 DrawHeaderIconCircle(graphics, new Rectangle(
@@ -760,7 +763,8 @@ namespace CodexUsageOverlay
                 x += circleSize + iconGap;
                 x = DrawHeaderText(graphics, shortLabel, normalFont, neutralBrush, near, x, shortLabelWidth);
                 x += textGap;
-                x = DrawHeaderText(graphics, shortRemaining, emphasisFont, pinkBrush, near, x, shortRemainingWidth);
+                x = DrawHeaderText(graphics, shortRemaining, emphasisFont, pinkBrush, near,
+                    x, shortRemainingWidth, EmphasisTextVerticalOffset);
                 if (shortResetWidth > 0)
                 {
                     x += textGap;
@@ -775,7 +779,8 @@ namespace CodexUsageOverlay
                 x += circleSize + iconGap;
                 x = DrawHeaderText(graphics, "本周", normalFont, neutralBrush, near, x, weeklyLabelWidth);
                 x += textGap;
-                x = DrawHeaderText(graphics, weeklyRemaining, emphasisFont, purpleBrush, near, x, weeklyRemainingWidth);
+                x = DrawHeaderText(graphics, weeklyRemaining, emphasisFont, purpleBrush, near,
+                    x, weeklyRemainingWidth, EmphasisTextVerticalOffset);
                 if (weeklyResetWidth > 0)
                 {
                     x += textGap;
@@ -852,10 +857,11 @@ namespace CodexUsageOverlay
         }
 
         private static int DrawHeaderText(Graphics graphics, string text, Font font, Brush brush,
-            StringFormat format, int x, int width)
+            StringFormat format, int x, int width, int verticalOffset = 0)
         {
             if (width > 0)
-                graphics.DrawString(text, font, brush, new Rectangle(x, 0, width, HeaderHeight), format);
+                graphics.DrawString(text, font, brush,
+                    new Rectangle(x, verticalOffset, width, HeaderHeight), format);
             return x + width;
         }
 
