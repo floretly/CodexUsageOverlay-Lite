@@ -71,6 +71,12 @@ namespace CodexUsageOverlay
                 "valid font size changed");
             Assert(Math.Abs(OverlaySettings.ClampFontSize(Single.NaN) - OverlaySettings.DefaultFontSize) < 0.01f,
                 "invalid font size did not use default");
+            Assert(OverlaySettings.ScaleHorizontalLayout(100, OverlaySettings.MinFontSize) < 100,
+                "minimum font size did not reduce horizontal spacing");
+            Assert(OverlaySettings.ScaleHorizontalLayout(100, OverlaySettings.DefaultFontSize) == 100,
+                "default font size changed the baseline horizontal spacing");
+            Assert(OverlaySettings.ScaleHorizontalLayout(100, OverlaySettings.MaxFontSize) > 100,
+                "maximum font size did not increase horizontal spacing");
         }
 
         private static RectangleF RenderVisibleBounds(float scale)

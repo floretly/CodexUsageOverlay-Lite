@@ -392,9 +392,14 @@ namespace CodexUsageOverlay
             float newDpiScale = NativeMethods.GetWindowDpiScale(codexWindow);
             bool dpiChanged = Math.Abs(newDpiScale - dpiScale) > 0.01f;
             dpiScale = newDpiScale;
-            int availableWidth = Math.Max(ScalePixels(240), windowWidth - ScalePixels(32));
-            int overlayWidth = Math.Min(ScalePixels(MaxOverlayWidth), availableWidth);
-            int compactWidth = Math.Min(ScalePixels(CompactOverlayWidth), availableWidth);
+            OverlaySettings layoutSettings = settingsExpanded && draftSettings != null ? draftSettings : settings;
+            int minimumWidth = OverlaySettings.ScaleHorizontalLayout(240, layoutSettings.FontSize);
+            int windowMargin = OverlaySettings.ScaleHorizontalLayout(32, layoutSettings.FontSize);
+            int preferredWidth = OverlaySettings.ScaleHorizontalLayout(MaxOverlayWidth, layoutSettings.FontSize);
+            int preferredCompactWidth = OverlaySettings.ScaleHorizontalLayout(CompactOverlayWidth, layoutSettings.FontSize);
+            int availableWidth = Math.Max(ScalePixels(minimumWidth), windowWidth - ScalePixels(windowMargin));
+            int overlayWidth = Math.Min(ScalePixels(preferredWidth), availableWidth);
+            int compactWidth = Math.Min(ScalePixels(preferredCompactWidth), availableWidth);
             int overlayLeft = rect.Left + (windowWidth - compactWidth) / 2;
             if (overlayLeft + overlayWidth > rect.Right)
                 overlayLeft = Math.Max(rect.Left, rect.Right - overlayWidth);
@@ -441,7 +446,7 @@ namespace CodexUsageOverlay
             }
 
             UsageData usage = service.Snapshot();
-            int textWidth = Math.Max(40, ResetRadarBounds.Left - 14);
+            int textWidth = MainUsageBounds.Width;
             displayText = BuildDisplayText(usage, textWidth);
             bool scheduledRadar = resetRadar.Status == ResetRadarStatus.ScheduledToday ||
                 resetRadar.Status == ResetRadarStatus.ScheduledUpcoming;
@@ -463,7 +468,6 @@ namespace CodexUsageOverlay
 
         private static string BuildDisplayText(UsageData usage, int availableTextWidth)
         {
-            string planLabel = usage.Plan.ToUpperInvariant();
             bool hasQuotaData = usage.RateLimitStatus != "待刷新";
             string shortQuota = BuildShortQuotaText(usage, hasQuotaData);
             string weeklyQuota = BuildWeeklyQuotaText(usage, hasQuotaData);
@@ -472,7 +476,6 @@ namespace CodexUsageOverlay
                 : "待刷新";
 
             System.Collections.Generic.List<string> sections = new System.Collections.Generic.List<string>();
-            sections.Add(planLabel);
             if (availableTextWidth >= 500)
             {
                 sections.Add(shortQuota);
@@ -487,8 +490,6 @@ namespace CodexUsageOverlay
 
             if (availableTextWidth >= 390)
             {
-                sections.Clear();
-                sections.Add(planLabel);
                 sections.Add(shortQuota);
                 sections.Add(weeklyQuota);
                 if (usage.AvailableResetCredits.HasValue)
@@ -729,7 +730,7 @@ namespace CodexUsageOverlay
             Directory.CreateDirectory(outputDirectory);
             try
             {
-                displayText = "PLUS  5小时 65% · 14:15   本周 72% · 9/21 08:57   重置券 3   27.1亿 Token";
+                displayText = "5小时 65% · 14:15   本周 72% · 9/21 08:57   重置券 3   27.1亿 Token";
                 resetRadar = new ResetRadarData
                 {
                     Status = ResetRadarStatus.NoSignal,
@@ -1028,7 +1029,11 @@ namespace CodexUsageOverlay
 
         private Rectangle GearBounds
         {
-            get { return new Rectangle(Math.Max(0, CanvasWidth - 34), 2, 30, HeaderHeight - 4); }
+            get
+            {
+                int rightMargin = ScaleHeaderSpacing(4);
+                return new Rectangle(Math.Max(0, CanvasWidth - rightMargin - 30), 2, 30, HeaderHeight - 4);
+            }
         }
 
         private Rectangle ResetRadarBounds
@@ -1036,8 +1041,9 @@ namespace CodexUsageOverlay
             get
             {
                 int width = CanvasWidth < 500 ? 22 : 104;
+                int gap = ScaleHeaderSpacing(6);
                 return new Rectangle(
-                    Math.Max(0, GearBounds.Left - width - 6),
+                    Math.Max(0, GearBounds.Left - width - gap),
                     (HeaderHeight - 18) / 2,
                     width,
                     18);
@@ -1046,7 +1052,20 @@ namespace CodexUsageOverlay
 
         private Rectangle MainUsageBounds
         {
-            get { return OverlayInteraction.GetMainUsageBounds(ResetRadarBounds.Left, HeaderHeight); }
+            get
+            {
+                return OverlayInteraction.GetMainUsageBounds(
+                    ResetRadarBounds.Left,
+                    HeaderHeight,
+                    ScaleHeaderSpacing(10),
+                    ScaleHeaderSpacing(4));
+            }
+        }
+
+        private int ScaleHeaderSpacing(int value)
+        {
+            OverlaySettings visualSettings = settingsExpanded && draftSettings != null ? draftSettings : settings;
+            return OverlaySettings.ScaleHorizontalLayout(value, visualSettings.FontSize);
         }
 
         private void DrawResetRadar(Graphics graphics, ResetRadarData radar, OverlaySettings visualSettings)

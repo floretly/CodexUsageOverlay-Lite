@@ -33,6 +33,12 @@ namespace CodexUsageOverlay
                 return DefaultFontSize;
             return Math.Max(MinFontSize, Math.Min(MaxFontSize, value));
         }
+
+        public static int ScaleHorizontalLayout(int value, float fontSize)
+        {
+            float scale = ClampFontSize(fontSize) / DefaultFontSize;
+            return Math.Max(1, (int)Math.Round(value * scale));
+        }
     }
 
     internal static class OverlaySettingsStore
