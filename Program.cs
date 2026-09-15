@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -243,13 +244,38 @@ namespace CodexUsageOverlay
         private string settingsRevision;
         private bool rightDownStartedInMainUsage;
 
-        private const int HeaderHeight = 28;
+        private const int HeaderHeight = 30;
         private const int ExpandedHeight = 236;
         // Keep the left edge close to the old compact layout while allowing the
         // right side to expand enough for the reset time and quota details.
         private const int CompactOverlayWidth = 520;
         private const int MaxOverlayWidth = 680;
         private const string RunwayPageUrl = "https://www.codexrunway.com/zh.html";
+
+        private enum DisplayRunRole
+        {
+            Label,
+            Plan,
+            PrimaryValue,
+            MetricValue,
+            Secondary
+        }
+
+        private sealed class DisplayRun
+        {
+            public string Text;
+            public DisplayRunRole Role;
+        }
+
+        private static readonly Regex DisplayRunPattern = new Regex(
+            @"(?<percentage>\d{1,3}%)|" +
+            @"(?<weeklyTime>\d{1,2}/\d{1,2}\s+\d{1,2}:\d{2})|" +
+            @"(?<clock>\d{1,2}:\d{2})|" +
+            @"(?<plan>\A\S+)|" +
+            @"(?<credit>(?<=重置券\s)\d+)|" +
+            @"(?<tokens>\d+(?:\.\d+)?(?:万|亿)?(?=\s+Token))|" +
+            @"(?<separator>·)",
+            RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
         public OverlayForm(UsageService service, OverlaySettings settings)
         {
@@ -652,62 +678,181 @@ namespace CodexUsageOverlay
                     }
                 }
 
-                using (Font font = CreateDisplayFont(visualSettings))
-                using (StringFormat format = UiRendering.CreateTextFormat())
+                Rectangle gear = GearBounds;
+                RectangleF box = MainUsageBounds;
+                DrawDisplayRuns(
+                    graphics,
+                    displayText,
+                    box,
+                    visualSettings,
+                    textColor,
+                    glowColor,
+                    rainbowText);
+
+                DrawResetRadar(graphics, resetRadar, visualSettings);
+
+                if (gearHovered || gearPressed)
                 {
-                    format.Alignment = StringAlignment.Far;
-                    format.LineAlignment = StringAlignment.Center;
-                    format.Trimming = StringTrimming.EllipsisCharacter;
-                    format.FormatFlags |= StringFormatFlags.NoWrap;
-                    Rectangle gear = GearBounds;
-                    Rectangle radar = ResetRadarBounds;
-                    RectangleF box = MainUsageBounds;
+                    Color gearFillColor = gearPressed
+                        ? Color.FromArgb(112, textColor.R, textColor.G, textColor.B)
+                        : Color.FromArgb(58, textColor.R, textColor.G, textColor.B);
+                    using (GraphicsPath gearHighlightPath = RoundedRectangle(GearBounds, 7))
+                    using (Brush gearHighlight = new SolidBrush(gearFillColor))
+                        graphics.FillPath(gearHighlight, gearHighlightPath);
+                }
 
-                    int glowRadius = settingsExpanded ? 1 : 2;
-                    for (int x = -glowRadius; x <= glowRadius; x++)
-                    {
-                        for (int y = -glowRadius; y <= glowRadius; y++)
-                        {
-                            if (x == 0 && y == 0)
-                                continue;
-                            int distance = Math.Abs(x) + Math.Abs(y);
-                            int alpha = distance <= 2 ? glowColor.A : Math.Max(6, glowColor.A / 3);
-                            using (Brush glow = new SolidBrush(Color.FromArgb(alpha, glowColor.R, glowColor.G, glowColor.B)))
-                                graphics.DrawString(displayText, font, glow, new RectangleF(box.X + x, box.Y + y, box.Width, box.Height), format);
-                        }
-                    }
-
-                    using (Brush text = CreateDisplayTextBrush(box, textColor, rainbowText))
-                        graphics.DrawString(displayText, font, text, box, format);
-
-                    DrawResetRadar(graphics, resetRadar, visualSettings);
-
-                    if (gearHovered || gearPressed)
-                    {
-                        Color gearFillColor = gearPressed
-                            ? Color.FromArgb(112, textColor.R, textColor.G, textColor.B)
-                            : Color.FromArgb(58, textColor.R, textColor.G, textColor.B);
-                        using (GraphicsPath gearHighlightPath = RoundedRectangle(GearBounds, 7))
-                        using (Brush gearHighlight = new SolidBrush(gearFillColor))
-                            graphics.FillPath(gearHighlight, gearHighlightPath);
-                    }
-
-                    using (Pen divider = new Pen(Color.FromArgb(70, textColor.R, textColor.G, textColor.B), 1f))
-                        graphics.DrawLine(divider, gear.Left, 6, gear.Left, HeaderHeight - 6);
-                    using (Font gearFont = new Font("Segoe MDL2 Assets", 10f, FontStyle.Regular, GraphicsUnit.Point))
-                    using (Brush gearBrush = new SolidBrush(textColor))
-                    using (StringFormat gearFormat = new StringFormat())
-                    {
-                        gearFormat.Alignment = StringAlignment.Center;
-                        gearFormat.LineAlignment = StringAlignment.Center;
-                        graphics.DrawString("\uE713", gearFont, gearBrush, gear, gearFormat);
-                    }
+                using (Pen divider = new Pen(Color.FromArgb(70, textColor.R, textColor.G, textColor.B), 1f))
+                    graphics.DrawLine(divider, gear.Left, 6, gear.Left, HeaderHeight - 6);
+                using (Font gearFont = new Font("Segoe MDL2 Assets", 10f, FontStyle.Regular, GraphicsUnit.Point))
+                using (Brush gearBrush = new SolidBrush(textColor))
+                using (StringFormat gearFormat = new StringFormat())
+                {
+                    gearFormat.Alignment = StringAlignment.Center;
+                    gearFormat.LineAlignment = StringAlignment.Center;
+                    graphics.DrawString("\uE713", gearFont, gearBrush, gear, gearFormat);
                 }
 
                 if (settingsExpanded && draftSettings != null)
                     DrawInlineSettings(graphics, textColor, borderColor, visualSettings);
             }
             return bitmap;
+        }
+
+        private static List<DisplayRun> BuildDisplayRuns(string text)
+        {
+            List<DisplayRun> runs = new List<DisplayRun>();
+            if (String.IsNullOrEmpty(text))
+                return runs;
+
+            int offset = 0;
+            foreach (Match match in DisplayRunPattern.Matches(text))
+            {
+                if (match.Index > offset)
+                {
+                    runs.Add(new DisplayRun
+                    {
+                        Text = text.Substring(offset, match.Index - offset),
+                        Role = DisplayRunRole.Label
+                    });
+                }
+
+                DisplayRunRole role = DisplayRunRole.Secondary;
+                if (match.Groups["plan"].Success)
+                    role = DisplayRunRole.Plan;
+                else if (match.Groups["percentage"].Success)
+                    role = DisplayRunRole.PrimaryValue;
+                else if (match.Groups["credit"].Success || match.Groups["tokens"].Success)
+                    role = DisplayRunRole.MetricValue;
+
+                runs.Add(new DisplayRun { Text = match.Value, Role = role });
+                offset = match.Index + match.Length;
+            }
+
+            if (offset < text.Length)
+            {
+                runs.Add(new DisplayRun
+                {
+                    Text = text.Substring(offset),
+                    Role = DisplayRunRole.Label
+                });
+            }
+            return runs;
+        }
+
+        private static void DrawDisplayRuns(
+            Graphics graphics,
+            string text,
+            RectangleF bounds,
+            OverlaySettings visualSettings,
+            Color accentColor,
+            Color glowColor,
+            bool rainbowAccent)
+        {
+            List<DisplayRun> runs = BuildDisplayRuns(text);
+            if (runs.Count == 0)
+                return;
+
+            Color labelColor = Color.FromArgb(255, 71, 84, 103);
+            Color secondaryColor = Color.FromArgb(255, 102, 112, 133);
+            using (Font labelFont = UiRendering.CreateTextFont(visualSettings.FontName, 8.5f, FontStyle.Regular))
+            using (Font planFont = UiRendering.CreateTextFont(visualSettings.FontName, 8.5f, FontStyle.Bold))
+            using (Font primaryFont = UiRendering.CreateTextFont(visualSettings.FontName, 9.5f, FontStyle.Bold))
+            using (Font metricFont = UiRendering.CreateTextFont(visualSettings.FontName, 9f, FontStyle.Bold))
+            using (StringFormat format = UiRendering.CreateTextFormat())
+            using (Brush labelBrush = new SolidBrush(labelColor))
+            using (Brush secondaryBrush = new SolidBrush(secondaryColor))
+            using (Brush accentBrush = CreateDisplayTextBrush(bounds, accentColor, rainbowAccent))
+            using (Brush glowBrush = new SolidBrush(glowColor))
+            {
+                format.Alignment = StringAlignment.Near;
+                format.LineAlignment = StringAlignment.Center;
+                format.Trimming = StringTrimming.None;
+                format.FormatFlags |= StringFormatFlags.NoWrap | StringFormatFlags.MeasureTrailingSpaces;
+
+                float[] widths = new float[runs.Count];
+                float totalWidth = 0f;
+                for (int index = 0; index < runs.Count; index++)
+                {
+                    Font font = DisplayRunFont(runs[index].Role, labelFont, planFont, primaryFont, metricFont);
+                    widths[index] = graphics.MeasureString(runs[index].Text, font, 10000, format).Width;
+                    totalWidth += widths[index];
+                }
+
+                if (totalWidth > bounds.Width)
+                {
+                    format.Alignment = StringAlignment.Far;
+                    format.Trimming = StringTrimming.EllipsisCharacter;
+                    graphics.DrawString(text, labelFont, labelBrush, bounds, format);
+                    return;
+                }
+
+                float left = bounds.Right - totalWidth;
+                for (int index = 0; index < runs.Count; index++)
+                {
+                    DisplayRun run = runs[index];
+                    Font font = DisplayRunFont(run.Role, labelFont, planFont, primaryFont, metricFont);
+                    Brush brush = DisplayRunBrush(run.Role, labelBrush, secondaryBrush, accentBrush);
+                    RectangleF runBounds = new RectangleF(left, bounds.Top, widths[index] + 1f, bounds.Height);
+
+                    if (glowColor.A > 0 && !String.IsNullOrWhiteSpace(run.Text))
+                    {
+                        graphics.DrawString(run.Text, font, glowBrush,
+                            new RectangleF(runBounds.X - 1f, runBounds.Y, runBounds.Width, runBounds.Height), format);
+                        graphics.DrawString(run.Text, font, glowBrush,
+                            new RectangleF(runBounds.X + 1f, runBounds.Y, runBounds.Width, runBounds.Height), format);
+                    }
+                    graphics.DrawString(run.Text, font, brush, runBounds, format);
+                    left += widths[index];
+                }
+            }
+        }
+
+        private static Font DisplayRunFont(
+            DisplayRunRole role,
+            Font labelFont,
+            Font planFont,
+            Font primaryFont,
+            Font metricFont)
+        {
+            if (role == DisplayRunRole.Plan)
+                return planFont;
+            if (role == DisplayRunRole.PrimaryValue)
+                return primaryFont;
+            if (role == DisplayRunRole.MetricValue)
+                return metricFont;
+            return labelFont;
+        }
+
+        private static Brush DisplayRunBrush(
+            DisplayRunRole role,
+            Brush labelBrush,
+            Brush secondaryBrush,
+            Brush accentBrush)
+        {
+            if (role == DisplayRunRole.Plan || role == DisplayRunRole.PrimaryValue ||
+                role == DisplayRunRole.MetricValue)
+                return accentBrush;
+            return role == DisplayRunRole.Secondary ? secondaryBrush : labelBrush;
         }
 
         public void ExportThemePreviews(string outputDirectory)
@@ -989,7 +1134,11 @@ namespace CodexUsageOverlay
             get
             {
                 int width = CanvasWidth < 500 ? 22 : 104;
-                return new Rectangle(Math.Max(0, GearBounds.Left - width - 6), 5, width, 18);
+                return new Rectangle(
+                    Math.Max(0, GearBounds.Left - width - 6),
+                    (HeaderHeight - 18) / 2,
+                    width,
+                    18);
             }
         }
 
@@ -1047,7 +1196,7 @@ namespace CodexUsageOverlay
 
             if (bounds.Width > 24)
             {
-                using (Font font = CreateDisplayFont(visualSettings, 8f))
+                using (Font font = CreateDisplayFont(visualSettings, 8.5f))
                 using (Brush text = new SolidBrush(labelColor))
                 using (StringFormat format = UiRendering.CreateTextFormat())
                 {
