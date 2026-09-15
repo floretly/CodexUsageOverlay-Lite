@@ -594,108 +594,61 @@ namespace CodexUsageOverlay
 
                 int canvasWidth = CanvasWidth;
                 int canvasHeight = CanvasHeight;
-                Rectangle pill = new Rectangle(1, 1, canvasWidth - 3, canvasHeight - 3);
-                Color shadowColor = Color.FromArgb(34, 0, 139, 255);
                 Color borderColor = Color.FromArgb(105, 48, 180, 255);
-                Color textColor = Color.FromArgb(255, 132, 219, 255);
-                Color glowColor = Color.FromArgb(38, 0, 154, 255);
-                Brush background;
+                Color textColor = Color.FromArgb(255, 21, 120, 164);
+                Color glowColor = Color.FromArgb(105, 255, 255, 255);
                 OverlaySettings visualSettings = settingsExpanded && draftSettings != null ? draftSettings : settings;
                 bool rainbowText = visualSettings.Theme == "RainbowText";
-                bool framelessHeader = rainbowText || visualSettings.Theme == "FrostedGlass";
 
                 if (visualSettings.Theme == "FrostedGlass")
                 {
-                    shadowColor = Color.FromArgb(24, 80, 105, 130);
                     borderColor = Color.FromArgb(150, 255, 255, 255);
                     textColor = Color.FromArgb(255, 28, 55, 78);
-                    glowColor = Color.FromArgb(18, 255, 255, 255);
-                    background = null;
+                    glowColor = Color.FromArgb(92, 255, 255, 255);
                 }
                 else if (visualSettings.Theme == "OrangeGradient")
                 {
-                    shadowColor = Color.FromArgb(42, 255, 96, 20);
-                    borderColor = Color.FromArgb(155, 255, 213, 135);
-                    textColor = Color.FromArgb(255, 255, 250, 235);
-                    glowColor = Color.FromArgb(34, 255, 177, 70);
-                    background = new LinearGradientBrush(pill,
-                        Color.FromArgb(222, 255, 194, 112), Color.FromArgb(222, 255, 119, 132),
-                        LinearGradientMode.Horizontal);
+                    borderColor = Color.FromArgb(180, 216, 95, 49);
+                    textColor = Color.FromArgb(255, 216, 95, 49);
+                    glowColor = Color.FromArgb(112, 255, 255, 255);
                 }
                 else if (visualSettings.Theme == "PinkGradient")
                 {
-                    shadowColor = Color.FromArgb(42, 255, 73, 169);
-                    borderColor = Color.FromArgb(170, 255, 190, 230);
-                    textColor = Color.FromArgb(255, 255, 248, 253);
-                    glowColor = Color.FromArgb(42, 255, 91, 181);
-                    background = new LinearGradientBrush(pill,
-                        Color.FromArgb(238, 255, 119, 187), Color.FromArgb(238, 190, 86, 210),
-                        LinearGradientMode.Horizontal);
+                    borderColor = Color.FromArgb(180, 195, 63, 145);
+                    textColor = Color.FromArgb(255, 195, 63, 145);
+                    glowColor = Color.FromArgb(112, 255, 255, 255);
                 }
                 else if (visualSettings.Theme == "Custom")
                 {
                     Color custom = Color.FromArgb(visualSettings.CustomBackgroundArgb);
-                    shadowColor = Color.FromArgb(32, custom.R, custom.G, custom.B);
-                    borderColor = Color.FromArgb(135, 255, 255, 255);
-                    textColor = Color.White;
-                    glowColor = Color.FromArgb(24, 255, 255, 255);
-                    background = new SolidBrush(Color.FromArgb(205, custom.R, custom.G, custom.B));
+                    int brightness = (custom.R * 299 + custom.G * 587 + custom.B * 114) / 1000;
+                    double scale = brightness > 180 ? 0.58d : 1d;
+                    textColor = Color.FromArgb(255,
+                        (int)Math.Round(custom.R * scale),
+                        (int)Math.Round(custom.G * scale),
+                        (int)Math.Round(custom.B * scale));
+                    borderColor = Color.FromArgb(180, textColor.R, textColor.G, textColor.B);
+                    glowColor = Color.FromArgb(112, 255, 255, 255);
                 }
                 else if (rainbowText)
                 {
-                    shadowColor = Color.Transparent;
                     borderColor = Color.Transparent;
                     textColor = Color.FromArgb(255, 25, 105, 145);
                     glowColor = Color.FromArgb(82, 255, 255, 255);
-                    background = null;
-                }
-                else
-                {
-                    background = new LinearGradientBrush(pill,
-                        Color.FromArgb(218, 8, 31, 51), Color.FromArgb(206, 10, 61, 87),
-                        LinearGradientMode.Horizontal);
                 }
 
-                if (framelessHeader)
+                if (settingsExpanded)
                 {
-                    if (settingsExpanded)
-                    {
-                        Rectangle settingsPanel = new Rectangle(1, HeaderHeight + 1,
-                            canvasWidth - 3, Math.Max(1, canvasHeight - HeaderHeight - 3));
-                        using (GraphicsPath panelPath = RoundedRectangle(settingsPanel, 10))
-                        using (LinearGradientBrush panelBackground = new LinearGradientBrush(settingsPanel,
-                            Color.FromArgb(210, 245, 251, 255), Color.FromArgb(178, 186, 220, 238),
-                            LinearGradientMode.Vertical))
-                        using (Pen panelBorder = new Pen(Color.FromArgb(145, 70, 181, 225), 1f))
-                        {
-                            graphics.FillPath(panelBackground, panelPath);
-                            graphics.DrawPath(panelBorder, panelPath);
-                        }
-                    }
-                }
-                else
-                {
-                    using (GraphicsPath shadowPath = RoundedRectangle(new Rectangle(0, 0, canvasWidth - 1, canvasHeight - 1), 12))
-                    using (Brush shadow = new SolidBrush(shadowColor))
-                        graphics.FillPath(shadow, shadowPath);
-
-                    using (GraphicsPath pillPath = RoundedRectangle(pill, 10))
-                    using (background)
-                    using (Pen border = new Pen(borderColor, 1f))
-                    {
-                        graphics.FillPath(background, pillPath);
-                        graphics.DrawPath(border, pillPath);
-                    }
-
-                    using (GraphicsPath glassPath = RoundedRectangle(new Rectangle(3, 3, canvasWidth - 7, canvasHeight - 7), 8))
-                    using (LinearGradientBrush glassSheen = new LinearGradientBrush(
-                        new Rectangle(3, 3, Math.Max(1, canvasWidth - 7), Math.Max(1, canvasHeight - 7)),
-                        Color.FromArgb(62, 255, 255, 255), Color.FromArgb(4, 255, 255, 255),
+                    Rectangle settingsPanel = new Rectangle(1, HeaderHeight + 1,
+                        canvasWidth - 3, Math.Max(1, canvasHeight - HeaderHeight - 3));
+                    using (GraphicsPath panelPath = RoundedRectangle(settingsPanel, 10))
+                    using (LinearGradientBrush panelBackground = new LinearGradientBrush(settingsPanel,
+                        Color.FromArgb(210, 245, 251, 255), Color.FromArgb(178, 186, 220, 238),
                         LinearGradientMode.Vertical))
-                    using (Pen innerHighlight = new Pen(Color.FromArgb(92, 255, 255, 255), 1f))
+                    using (Pen panelBorder = new Pen(Color.FromArgb(145, 70, 181, 225), 1f))
                     {
-                        graphics.FillPath(glassSheen, glassPath);
-                        graphics.DrawPath(innerHighlight, glassPath);
+                        graphics.FillPath(panelBackground, panelPath);
+                        graphics.DrawPath(panelBorder, panelPath);
                     }
                 }
 
@@ -1056,20 +1009,12 @@ namespace CodexUsageOverlay
             Color labelColor = Color.White;
             if (quietNoSignal)
             {
-                bool lightSurface = visualSettings.Theme == "RainbowText" ||
-                    visualSettings.Theme == "FrostedGlass";
-                labelColor = lightSurface
-                    ? Color.FromArgb(255, 72, 101, 124)
-                    : Color.FromArgb(225, 236, 244, 250);
-                dot = lightSurface
-                    ? Color.FromArgb(255, 111, 155, 184)
-                    : Color.FromArgb(255, 163, 207, 239);
+                labelColor = Color.FromArgb(255, 72, 101, 124);
+                dot = Color.FromArgb(255, 111, 155, 184);
                 if (radarHovered)
                 {
                     using (GraphicsPath hoverPath = RoundedRectangle(bounds, 8))
-                    using (Brush hoverBrush = new SolidBrush(lightSurface
-                        ? Color.FromArgb(30, 72, 101, 124)
-                        : Color.FromArgb(38, 255, 255, 255)))
+                    using (Brush hoverBrush = new SolidBrush(Color.FromArgb(30, 72, 101, 124)))
                         graphics.FillPath(hoverBrush, hoverPath);
                 }
             }
