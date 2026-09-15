@@ -1047,7 +1047,7 @@ namespace CodexUsageOverlay
 
             if (bounds.Width > 24)
             {
-                using (Font font = CreateDisplayFont(visualSettings, 8.5f))
+                using (Font font = CreateDisplayFont(visualSettings, 9f))
                 using (Brush text = new SolidBrush(labelColor))
                 using (StringFormat format = UiRendering.CreateTextFormat())
                 {
@@ -1102,7 +1102,7 @@ namespace CodexUsageOverlay
 
         private Font CreateDisplayFont(OverlaySettings visualSettings)
         {
-            return CreateDisplayFont(visualSettings, 9.5f);
+            return CreateDisplayFont(visualSettings, 9f);
         }
 
         private Font CreateDisplayFont(OverlaySettings visualSettings, float size)
