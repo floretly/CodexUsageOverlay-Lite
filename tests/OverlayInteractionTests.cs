@@ -6,6 +6,14 @@ namespace CodexUsageOverlay
 {
     internal static class OverlayInteractionTests
     {
+        public static void OverlayStaysCentered()
+        {
+            int left = OverlayInteraction.GetCenteredOverlayLeft(100, 1200, 568);
+            Assert(left == 416, "overlay was not centered in the target window");
+            Assert(left - 100 == (100 + 1200) - (left + 568),
+                "overlay side margins were not equal");
+        }
+
         public static void RightClickMainUsageRequestsExit()
         {
             Rectangle bounds = OverlayInteraction.GetMainUsageBounds(500, 28);

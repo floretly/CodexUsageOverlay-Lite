@@ -242,13 +242,11 @@ namespace CodexUsageOverlay
         private DateTime radarRefreshRequestedUtc;
         private string settingsRevision;
         private bool rightDownStartedInMainUsage;
+        private int centeredHeaderSideMargin = 10;
 
         private const int HeaderHeight = 28;
         private const int ExpandedHeight = 236;
-        // Keep the left edge close to the old compact layout while allowing the
-        // right side to expand enough for the reset time and quota details.
-        private const int CompactOverlayWidth = 520;
-        private const int MaxOverlayWidth = 680;
+        private const int MaxOverlayWidth = 568;
         private const string RunwayPageUrl = "https://www.codexrunway.com/zh.html";
 
         public OverlayForm(UsageService service, OverlaySettings settings)
@@ -396,13 +394,9 @@ namespace CodexUsageOverlay
             int minimumWidth = OverlaySettings.ScaleHorizontalLayout(240, layoutSettings.FontSize);
             int windowMargin = OverlaySettings.ScaleHorizontalLayout(32, layoutSettings.FontSize);
             int preferredWidth = OverlaySettings.ScaleHorizontalLayout(MaxOverlayWidth, layoutSettings.FontSize);
-            int preferredCompactWidth = OverlaySettings.ScaleHorizontalLayout(CompactOverlayWidth, layoutSettings.FontSize);
             int availableWidth = Math.Max(ScalePixels(minimumWidth), windowWidth - ScalePixels(windowMargin));
             int overlayWidth = Math.Min(ScalePixels(preferredWidth), availableWidth);
-            int compactWidth = Math.Min(ScalePixels(preferredCompactWidth), availableWidth);
-            int overlayLeft = rect.Left + (windowWidth - compactWidth) / 2;
-            if (overlayLeft + overlayWidth > rect.Right)
-                overlayLeft = Math.Max(rect.Left, rect.Right - overlayWidth);
+            int overlayLeft = OverlayInteraction.GetCenteredOverlayLeft(rect.Left, windowWidth, overlayWidth);
             int titleBarHeight = ScalePixels(36);
             int overlayHeight = ScalePixels(settingsExpanded ? ExpandedHeight : HeaderHeight);
             Screen targetScreen = Screen.FromHandle(codexWindow);
@@ -446,7 +440,7 @@ namespace CodexUsageOverlay
             }
 
             UsageData usage = service.Snapshot();
-            int textWidth = MainUsageBounds.Width;
+            int textWidth = MaximumMainUsageWidth;
             displayText = BuildDisplayText(usage, textWidth);
             bool scheduledRadar = resetRadar.Status == ResetRadarStatus.ScheduledToday ||
                 resetRadar.Status == ResetRadarStatus.ScheduledUpcoming;
@@ -653,6 +647,7 @@ namespace CodexUsageOverlay
                     }
                 }
 
+                UpdateCenteredHeaderLayout(visualSettings);
                 Rectangle gear = GearBounds;
                 RectangleF box = MainUsageBounds;
                 using (Font font = UiRendering.CreateTextFont(
@@ -730,7 +725,7 @@ namespace CodexUsageOverlay
             Directory.CreateDirectory(outputDirectory);
             try
             {
-                displayText = "5小时 65% · 14:15   本周 72% · 9/21 08:57   重置券 3   27.1亿 Token";
+                displayText = "5小时 59% · 19:17   本周 60% · 9/21 08:57   重置券 3   27.1亿 Token";
                 resetRadar = new ResetRadarData
                 {
                     Status = ResetRadarStatus.NoSignal,
@@ -739,7 +734,7 @@ namespace CodexUsageOverlay
                 };
                 resetRadarDisplayNow = new DateTimeOffset(2026, 8, 10, 10, 2, 27, TimeSpan.FromHours(8));
                 dpiScale = 1f;
-                Width = 720;
+                Width = OverlaySettings.ScaleHorizontalLayout(MaxOverlayWidth, originalSettings.FontSize);
 
                 for (int index = 0; index < themes.Length; index++)
                 {
@@ -1031,8 +1026,11 @@ namespace CodexUsageOverlay
         {
             get
             {
-                int rightMargin = ScaleHeaderSpacing(4);
-                return new Rectangle(Math.Max(0, CanvasWidth - rightMargin - 30), 2, 30, HeaderHeight - 4);
+                return new Rectangle(
+                    Math.Max(0, CanvasWidth - centeredHeaderSideMargin - 30),
+                    2,
+                    30,
+                    HeaderHeight - 4);
             }
         }
 
@@ -1044,9 +1042,9 @@ namespace CodexUsageOverlay
                 int gap = ScaleHeaderSpacing(6);
                 return new Rectangle(
                     Math.Max(0, GearBounds.Left - width - gap),
-                    (HeaderHeight - 18) / 2,
+                    (HeaderHeight - 20) / 2,
                     width,
-                    18);
+                    20);
             }
         }
 
@@ -1057,8 +1055,41 @@ namespace CodexUsageOverlay
                 return OverlayInteraction.GetMainUsageBounds(
                     ResetRadarBounds.Left,
                     HeaderHeight,
-                    ScaleHeaderSpacing(10),
+                    centeredHeaderSideMargin,
                     ScaleHeaderSpacing(4));
+            }
+        }
+
+        private int MaximumMainUsageWidth
+        {
+            get
+            {
+                int minimumSideMargin = ScaleHeaderSpacing(4);
+                int radarWidth = CanvasWidth < 500 ? 22 : 104;
+                return Math.Max(40,
+                    CanvasWidth - minimumSideMargin * 2 - 30 -
+                    ScaleHeaderSpacing(6) - radarWidth - ScaleHeaderSpacing(4));
+            }
+        }
+
+        private void UpdateCenteredHeaderLayout(OverlaySettings visualSettings)
+        {
+            using (Font font = UiRendering.CreateTextFont(
+                visualSettings.FontName,
+                OverlaySettings.ClampFontSize(visualSettings.FontSize),
+                FontStyle.Bold))
+            {
+                Size measured = TextRenderer.MeasureText(
+                    displayText,
+                    font,
+                    new Size(10000, HeaderHeight),
+                    TextFormatFlags.SingleLine | TextFormatFlags.NoPadding);
+                int radarWidth = CanvasWidth < 500 ? 22 : 104;
+                int contentWidth = measured.Width + ScaleHeaderSpacing(4) + radarWidth +
+                    ScaleHeaderSpacing(6) + 30;
+                centeredHeaderSideMargin = Math.Max(
+                    ScaleHeaderSpacing(4),
+                    (CanvasWidth - contentWidth) / 2);
             }
         }
 
@@ -1081,38 +1112,32 @@ namespace CodexUsageOverlay
             {
                 labelColor = Color.FromArgb(255, 72, 101, 124);
                 dot = Color.FromArgb(255, 111, 155, 184);
-                if (radarHovered)
-                {
-                    using (GraphicsPath hoverPath = RoundedRectangle(bounds, 8))
-                    using (Brush hoverBrush = new SolidBrush(Color.FromArgb(30, 72, 101, 124)))
-                        graphics.FillPath(hoverBrush, hoverPath);
-                }
             }
-            else
+
+            if (radarHovered)
             {
-                if (radarHovered)
-                    fill = Color.FromArgb(Math.Min(245, fill.A + 35), fill.R, fill.G, fill.B);
-
-                using (GraphicsPath path = RoundedRectangle(bounds, 8))
-                using (Brush fillBrush = new SolidBrush(fill))
-                using (Pen borderPen = new Pen(border, 1f))
-                {
-                    graphics.FillPath(fillBrush, path);
-                    graphics.DrawPath(borderPen, path);
-                }
+                using (GraphicsPath hoverPath = RoundedRectangle(bounds, 10))
+                using (Brush hoverBrush = new SolidBrush(Color.FromArgb(24, border.R, border.G, border.B)))
+                    graphics.FillPath(hoverBrush, hoverPath);
             }
 
-            int dotSize = bounds.Width <= 24 ? 8 : 6;
+            using (GraphicsPath chipPath = RoundedRectangle(bounds, 10))
+            using (Pen chipBorder = new Pen(Color.FromArgb(
+                quietNoSignal ? 155 : 205,
+                border.R,
+                border.G,
+                border.B), 1f))
+                graphics.DrawPath(chipBorder, chipPath);
+
+            int dotSize = bounds.Width <= 24 ? 8 : 7;
             int dotLeft = bounds.Width <= 24 ? bounds.Left + (bounds.Width - dotSize) / 2 : bounds.Left + 8;
             int dotTop = bounds.Top + (bounds.Height - dotSize) / 2;
-            using (Brush dotBrush = new SolidBrush(dot))
+            using (Pen dotPen = new Pen(dot, 1.25f))
             {
+                graphics.DrawEllipse(dotPen, dotLeft, dotTop, dotSize, dotSize);
                 if (!quietNoSignal)
-                {
-                    using (Pen pulse = new Pen(Color.FromArgb(130, dot.R, dot.G, dot.B), 1f))
-                        graphics.DrawEllipse(pulse, dotLeft - 2, dotTop - 2, dotSize + 4, dotSize + 4);
-                }
-                graphics.FillEllipse(dotBrush, dotLeft, dotTop, dotSize, dotSize);
+                    using (Brush activeDot = new SolidBrush(dot))
+                        graphics.FillEllipse(activeDot, dotLeft + 2, dotTop + 2, dotSize - 3, dotSize - 3);
             }
 
             if (bounds.Width > 24)
@@ -1124,7 +1149,7 @@ namespace CodexUsageOverlay
                 using (Brush text = new SolidBrush(labelColor))
                 using (StringFormat format = UiRendering.CreateTextFormat())
                 {
-                    format.Alignment = StringAlignment.Center;
+                    format.Alignment = StringAlignment.Near;
                     format.LineAlignment = StringAlignment.Center;
                     format.Trimming = StringTrimming.EllipsisCharacter;
                     format.FormatFlags |= StringFormatFlags.NoWrap;
@@ -1134,7 +1159,7 @@ namespace CodexUsageOverlay
                             radar,
                             resetRadarDisplayNow ?? DateTimeOffset.Now);
                     graphics.DrawString(pillLabel, font, text,
-                        new Rectangle(bounds.Left + 17, bounds.Top, bounds.Width - 20, bounds.Height), format);
+                        new Rectangle(bounds.Left + 22, bounds.Top, bounds.Width - 28, bounds.Height), format);
                 }
             }
         }

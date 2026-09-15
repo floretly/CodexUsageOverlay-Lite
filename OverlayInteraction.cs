@@ -11,6 +11,11 @@ namespace CodexUsageOverlay
 
     internal static class OverlayInteraction
     {
+        internal static int GetCenteredOverlayLeft(int windowLeft, int windowWidth, int overlayWidth)
+        {
+            return windowLeft + (windowWidth - overlayWidth) / 2;
+        }
+
         internal static Rectangle GetMainUsageBounds(
             int resetRadarLeft,
             int headerHeight,
