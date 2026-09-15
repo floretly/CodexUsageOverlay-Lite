@@ -14,6 +14,14 @@ namespace CodexUsageOverlay
                 "overlay side margins were not equal");
         }
 
+        public static void HeaderContentStaysCentered()
+        {
+            int left = OverlayInteraction.GetCenteredContentLeft(720, 654);
+            int right = 720 - (left + 654);
+            Assert(left == 33, "header content did not start at the centered position");
+            Assert(left == right, "header content side margins were not equal");
+        }
+
         public static void RightClickMainUsageRequestsExit()
         {
             Rectangle bounds = OverlayInteraction.GetMainUsageBounds(500, 28);

@@ -16,6 +16,11 @@ namespace CodexUsageOverlay
             return windowLeft + (windowWidth - overlayWidth) / 2;
         }
 
+        internal static int GetCenteredContentLeft(int canvasWidth, int contentWidth)
+        {
+            return (canvasWidth - contentWidth) / 2;
+        }
+
         internal static Rectangle GetMainUsageBounds(
             int resetRadarLeft,
             int headerHeight,

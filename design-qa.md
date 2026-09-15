@@ -1,45 +1,51 @@
-# Design QA — User-designed segmented header
+# Design QA — Transparent, optically centered segmented header
 
-- Source visual truth: `D:\ChatGPT Image 2026年9月15日 16_07_54.png`
-- Implementation screenshot: `C:\Users\sothing\Documents\ChatGPT\额度组件\ui-preview\frosted-glass-collapsed.png`
-- Combined comparison: `C:\Users\sothing\Documents\ChatGPT\额度组件\ui-preview\user-mockup-header-comparison.png`
-- Source pixels: 2089 × 753
-- Source component crop: `(80, 243, 1895, 128)`, proportionally normalized to 699 × 47
-- Implementation viewport and pixels: 699 × 30 at 1× preview density and the current configured font scale
-- State: collapsed overlay, no reset signal, representative live-usage values
+- Original visual reference: `D:\ChatGPT Image 2026年9月15日 16_07_54.png`
+- Latest user override: remove the outer component background and correct horizontal centering
+- Raw implementation capture: `C:\Users\sothing\Documents\ChatGPT\额度组件\ui-preview\frosted-glass-collapsed.png`
+- Transparency checker preview: `C:\Users\sothing\Documents\ChatGPT\额度组件\ui-preview\transparent-centered-checker.png`
+- Combined comparison: `C:\Users\sothing\Documents\ChatGPT\额度组件\ui-preview\transparent-centered-comparison.png`
+- Implementation viewport: 720 × 30 logical pixels at 1× preview density
+- State: collapsed overlay, no reset signal, representative usage values
 
 ## Full-view comparison evidence
 
-The normalized source component and the native implementation are stacked in the combined comparison image. The implementation matches the source information architecture and visual rhythm: white rounded surface, pink short-window accent, purple weekly accent, two light-blue utility pills, radio-status group, dividers, circular settings control, and centered composition.
+The combined comparison stacks the source component above the updated implementation. The selected segmented information architecture is preserved: short-window quota, weekly quota, reset credits, Token count, radar state, dividers, and settings control. The latest user feedback intentionally overrides the source's white rounded outer panel; the checkerboard underneath the implementation makes the transparent surface visible.
 
-The implementation is intentionally 30 logical pixels tall so it fits the 36-pixel Codex title bar. The source is a presentation mock with a substantially taller aspect ratio, so its crop is shown at proportional width rather than stretched vertically.
+## Focused-region and pixel evidence
 
-## Focused-region comparison evidence
-
-The full implementation is already a 699 × 30 component-only capture. Icons, text, pills, separators, borders, and the shadow remain readable at original size in the combined comparison, so a second crop would not expose additional fidelity information.
+The checker preview is the full 720 × 30 implementation centered within a neutral checkerboard. A direct alpha-channel scan of the raw PNG found visible bounds at `x=49..671` and `y=5..26`. Horizontal transparent margins are 49 px left and 48 px right, a one-pixel difference caused by integer rounding. All four corner alpha values are zero.
 
 ## Required fidelity surfaces
 
-- Fonts and typography: The selected safe UI font remains user-configurable. Labels and reset times use regular weight; percentages, reset credits, and radar copy use stronger optical weight. All content stays on one line.
-- Spacing and layout rhythm: Six groups follow the source order and use measured widths. The complete visible group and the overlay window are both centered. Horizontal dimensions continue to scale with the configured font size.
-- Colors and visual tokens: Short-window emphasis uses vivid pink, weekly emphasis uses violet, utility pills use cool blue tints, and the remaining copy uses dark blue-gray. The white panel has a restrained border, vertical gradient, and soft shadow.
-- Image quality and asset fidelity: Clock, calendar, tag, payment card, radio, and settings symbols use Segoe Fluent Icons or Segoe MDL2 Assets so they remain sharp at different DPI scales. The tag and payment-card symbols are the closest system-native substitutes for the mock's ticket and coin-stack symbols.
-- Copy and content: Live short-window, weekly, reset-credit, lifetime-token, and radar values map to the same visual locations as the source.
+- Typography: user-selected font and size remain active; percentages and important status copy retain stronger emphasis.
+- Layout: the header content is centered from its measured width, and the overlay uses a 720 px base width that expands when live content needs more space.
+- Transparency: the outer panel fill, border, and shadow are removed. The title bar beneath the overlay remains visible.
+- Local grouping: tinted clock/calendar circles, reset-credit and Token pills, radar interaction state, and the settings circle remain visible because they communicate grouping or affordance.
+- Icons: Segoe Fluent Icons / Segoe MDL2 Assets remain sharp across DPI scales.
 
 ## Comparison history
 
 ### First pass
 
-- P2: The radio glyph and settings glyph were visibly smaller than the source hierarchy.
-- Fix: Added dedicated larger icon fonts for the radar and settings controls while preserving the 30-pixel title-bar limit.
+- P1: the visible content could overflow the 660 px canvas; the left edge was then clamped to 6 px, creating unequal margins and a right-shifted appearance.
+- P1: the outer white panel, border, and shadow conflicted with the latest transparency request.
 
-### Second pass
+### Fixes
 
-- Post-fix evidence: `user-mockup-header-comparison.png` shows the corrected radio and gear hierarchy with balanced outer margins.
+- Replaced the asymmetric left clamp with measured-width centering.
+- Increased the base canvas from 660 px to 720 px and added automatic expansion from the measured live content width.
+- Removed the outer panel fill, border, and shadow while preserving the internal information groups.
+- Added a regression test that asserts equal left and right content margins.
+
+### Final pass
+
+- Pixel scan confirms transparent corners and balanced horizontal margins (49 px / 48 px).
+- Automated interaction and layout tests pass.
 - No actionable P0, P1, or P2 findings remain.
 
 ## Follow-up polish
 
-- P3: A bespoke ticket and coin-stack asset could match the mock more literally, but the current Windows system icons are clearer and more robust at the component's real 30-pixel height.
+- P3: real text rasterization can place a few faint anti-aliased pixels asymmetrically, but the measured layout itself is centered and the visible alpha bounds differ by only one pixel.
 
 final result: passed

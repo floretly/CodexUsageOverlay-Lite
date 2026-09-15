@@ -246,10 +246,12 @@ namespace CodexUsageOverlay
         private Rectangle renderedMainUsageBounds = Rectangle.Empty;
         private Rectangle renderedResetRadarBounds = Rectangle.Empty;
         private Rectangle renderedGearBounds = Rectangle.Empty;
+        private int measuredHeaderContentWidth;
 
         private const int HeaderHeight = 30;
         private const int ExpandedHeight = 238;
-        private const int MaxOverlayWidth = 660;
+        private const int BaseOverlayWidth = 720;
+        private const int HeaderHorizontalMargin = 12;
         private const string RunwayPageUrl = "https://www.codexrunway.com/zh.html";
 
         public OverlayForm(UsageService service, OverlaySettings settings)
@@ -278,7 +280,7 @@ namespace CodexUsageOverlay
             ShowInTaskbar = false;
             StartPosition = FormStartPosition.Manual;
             TopMost = true;
-            Width = MaxOverlayWidth;
+            Width = BaseOverlayWidth;
             Height = 30;
 
             timer = new System.Windows.Forms.Timer();
@@ -396,7 +398,12 @@ namespace CodexUsageOverlay
             OverlaySettings layoutSettings = settingsExpanded && draftSettings != null ? draftSettings : settings;
             int minimumWidth = OverlaySettings.ScaleHorizontalLayout(240, layoutSettings.FontSize);
             int windowMargin = OverlaySettings.ScaleHorizontalLayout(32, layoutSettings.FontSize);
-            int preferredWidth = OverlaySettings.ScaleHorizontalLayout(MaxOverlayWidth, layoutSettings.FontSize);
+            int preferredWidth = OverlaySettings.ScaleHorizontalLayout(BaseOverlayWidth, layoutSettings.FontSize);
+            if (measuredHeaderContentWidth > 0)
+            {
+                preferredWidth = Math.Max(preferredWidth,
+                    measuredHeaderContentWidth + ScaleHeaderSpacing(HeaderHorizontalMargin * 2));
+            }
             int availableWidth = Math.Max(ScalePixels(minimumWidth), windowWidth - ScalePixels(windowMargin));
             int overlayWidth = Math.Min(ScalePixels(preferredWidth), availableWidth);
             int overlayLeft = OverlayInteraction.GetCenteredOverlayLeft(rect.Left, windowWidth, overlayWidth);
@@ -654,23 +661,6 @@ namespace CodexUsageOverlay
         private void DrawDesignedHeader(Graphics graphics, OverlaySettings visualSettings)
         {
             int canvasWidth = CanvasWidth;
-            Rectangle shadowBounds = new Rectangle(3, 4, Math.Max(1, canvasWidth - 6), HeaderHeight - 5);
-            Rectangle panelBounds = new Rectangle(2, 1, Math.Max(1, canvasWidth - 4), HeaderHeight - 4);
-            using (GraphicsPath shadowPath = RoundedRectangle(shadowBounds, 11))
-            using (Brush shadow = new SolidBrush(Color.FromArgb(28, 41, 72, 98)))
-                graphics.FillPath(shadow, shadowPath);
-            using (GraphicsPath panelPath = RoundedRectangle(panelBounds, 11))
-            using (LinearGradientBrush panel = new LinearGradientBrush(
-                panelBounds,
-                Color.FromArgb(250, 255, 255, 255),
-                Color.FromArgb(246, 247, 251, 255),
-                LinearGradientMode.Vertical))
-            using (Pen panelBorder = new Pen(Color.FromArgb(118, 224, 232, 239), 1f))
-            {
-                graphics.FillPath(panel, panelPath);
-                graphics.DrawPath(panelBorder, panelPath);
-            }
-
             float baseSize = OverlaySettings.ClampFontSize(visualSettings.FontSize);
             float emphasisSize = Math.Min(OverlaySettings.MaxFontSize + 1.5f, baseSize + 1.2f);
             float iconSize = Math.Max(8.5f, baseSize + 1.1f);
@@ -760,7 +750,8 @@ namespace CodexUsageOverlay
                 int dividerBlock = dividerPadding * 2 + 1;
                 int contentWidth = shortWidth + dividerBlock + weeklyWidth + dividerBlock + creditsWidth +
                     pillGap + tokenWidth + dividerBlock + radarWidth + dividerBlock + gearSize;
-                int x = Math.Max(ScaleHeaderSpacing(6), (canvasWidth - contentWidth) / 2);
+                measuredHeaderContentWidth = contentWidth;
+                int x = OverlayInteraction.GetCenteredContentLeft(canvasWidth, contentWidth);
                 int mainStart = x;
 
                 DrawHeaderIconCircle(graphics, new Rectangle(
@@ -965,7 +956,7 @@ namespace CodexUsageOverlay
                 };
                 resetRadarDisplayNow = new DateTimeOffset(2026, 8, 10, 10, 2, 27, TimeSpan.FromHours(8));
                 dpiScale = 1f;
-                Width = OverlaySettings.ScaleHorizontalLayout(MaxOverlayWidth, originalSettings.FontSize);
+                Width = OverlaySettings.ScaleHorizontalLayout(BaseOverlayWidth, originalSettings.FontSize);
 
                 for (int index = 0; index < themes.Length; index++)
                 {
