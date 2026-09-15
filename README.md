@@ -45,6 +45,7 @@ Codex Usage Overlay Lite 运行在 Windows 桌面上，不修改 Codex 主程序
 通过悬浮条右侧齿轮打开设置面板，可调整：
 
 - 字体：Microsoft YaHei UI、Segoe UI、SimSun 或 Arial 等安全字体。
+- 字号：7.5–11 pt，以 0.5 pt 为步进调整；雷达文字会自动保持略小一级。
 - 主题：荧光蓝、磨砂玻璃、渐变橙、渐变粉、自定义背景和彩色文字。
 - 自定义背景颜色。
 - 自动刷新间隔：5–3600 秒，默认 15 秒。

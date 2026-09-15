@@ -650,7 +650,7 @@ namespace CodexUsageOverlay
                 RectangleF box = MainUsageBounds;
                 using (Font font = UiRendering.CreateTextFont(
                     visualSettings.FontName,
-                    8.5f,
+                    OverlaySettings.ClampFontSize(visualSettings.FontSize),
                     FontStyle.Regular))
                 using (StringFormat format = UiRendering.CreateTextFormat())
                 {
@@ -788,7 +788,7 @@ namespace CodexUsageOverlay
                 center.LineAlignment = StringAlignment.Center;
 
                 DrawInlineLabel(graphics, "字体", InlineRowBounds(0), labelFont, textBrush, left);
-                Rectangle fontBox = InlineValueBounds(0);
+                Rectangle fontBox = FontNameValueBounds;
                 DrawInlineBox(graphics, fontBox, boxColor, borderColor);
                 graphics.DrawString("‹", valueFont, textBrush,
                     new Rectangle(FontPreviousBounds.Left, FontPreviousBounds.Top - 1,
@@ -798,6 +798,22 @@ namespace CodexUsageOverlay
                 graphics.DrawString("›", valueFont, textBrush,
                     new Rectangle(FontNextBounds.Left, FontNextBounds.Top - 1,
                         FontNextBounds.Width, FontNextBounds.Height), center);
+
+                graphics.DrawString("字号", labelFont, textBrush, FontSizeLabelBounds, left);
+                Rectangle fontSizeBox = FontSizeValueBounds;
+                DrawInlineBox(graphics, fontSizeBox, boxColor, borderColor);
+                graphics.DrawString("−", valueFont, textBrush,
+                    new Rectangle(FontSizeMinusBounds.Left, FontSizeMinusBounds.Top - 1,
+                        FontSizeMinusBounds.Width, FontSizeMinusBounds.Height), center);
+                graphics.DrawString(
+                    OverlaySettings.ClampFontSize(visualSettings.FontSize).ToString("0.0", CultureInfo.InvariantCulture) + " pt",
+                    valueFont,
+                    textBrush,
+                    new Rectangle(fontSizeBox.Left + 30, fontSizeBox.Top, fontSizeBox.Width - 60, fontSizeBox.Height),
+                    center);
+                graphics.DrawString("+", valueFont, textBrush,
+                    new Rectangle(FontSizePlusBounds.Left, FontSizePlusBounds.Top - 1,
+                        FontSizePlusBounds.Width, FontSizePlusBounds.Height), center);
 
                 DrawInlineLabel(graphics, "外观", InlineRowBounds(1), labelFont, textBrush, left);
                 string[] themeLabels = new[] { "荧光蓝", "磨砂", "渐变橙", "渐变粉", "自定义", "彩字" };
@@ -933,8 +949,36 @@ namespace CodexUsageOverlay
             return new Rectangle(116, rowBounds.Top, Math.Max(100, CanvasWidth - 132), rowBounds.Height);
         }
 
-        private Rectangle FontPreviousBounds { get { Rectangle box = InlineValueBounds(0); return new Rectangle(box.Left, box.Top, 34, box.Height); } }
-        private Rectangle FontNextBounds { get { Rectangle box = InlineValueBounds(0); return new Rectangle(box.Right - 34, box.Top, 34, box.Height); } }
+        private Rectangle FontNameValueBounds
+        {
+            get
+            {
+                Rectangle box = InlineValueBounds(0);
+                int sizeAreaWidth = Math.Min(178, Math.Max(150, box.Width / 3));
+                return new Rectangle(box.Left, box.Top, Math.Max(150, box.Width - sizeAreaWidth), box.Height);
+            }
+        }
+        private Rectangle FontPreviousBounds { get { Rectangle box = FontNameValueBounds; return new Rectangle(box.Left, box.Top, 34, box.Height); } }
+        private Rectangle FontNextBounds { get { Rectangle box = FontNameValueBounds; return new Rectangle(box.Right - 34, box.Top, 34, box.Height); } }
+        private Rectangle FontSizeLabelBounds
+        {
+            get
+            {
+                Rectangle fontBox = FontNameValueBounds;
+                return new Rectangle(fontBox.Right + 10, fontBox.Top, 38, fontBox.Height);
+            }
+        }
+        private Rectangle FontSizeValueBounds
+        {
+            get
+            {
+                Rectangle label = FontSizeLabelBounds;
+                int right = InlineValueBounds(0).Right;
+                return new Rectangle(label.Right + 2, label.Top, Math.Max(84, right - label.Right - 2), label.Height);
+            }
+        }
+        private Rectangle FontSizeMinusBounds { get { Rectangle box = FontSizeValueBounds; return new Rectangle(box.Left, box.Top, 30, box.Height); } }
+        private Rectangle FontSizePlusBounds { get { Rectangle box = FontSizeValueBounds; return new Rectangle(box.Right - 30, box.Top, 30, box.Height); } }
         private Rectangle BackgroundLabelBounds { get { return new Rectangle(16, 104, 74, 27); } }
         private Rectangle BackgroundColorBounds { get { return new Rectangle(92, 104, 174, 27); } }
         private Rectangle RefreshLabelBounds { get { return new Rectangle(280, 104, 72, 27); } }
@@ -1032,7 +1076,7 @@ namespace CodexUsageOverlay
             {
                 using (Font font = UiRendering.CreateTextFont(
                     visualSettings.FontName,
-                    8f,
+                    Math.Max(7f, OverlaySettings.ClampFontSize(visualSettings.FontSize) - 0.5f),
                     FontStyle.Regular))
                 using (Brush text = new SolidBrush(labelColor))
                 using (StringFormat format = UiRendering.CreateTextFormat())
@@ -1162,6 +1206,8 @@ namespace CodexUsageOverlay
             else if (ResetSourceBounds.Contains(logicalLocation)) OpenRadarSource();
             else if (FontPreviousBounds.Contains(logicalLocation)) CycleFont(-1);
             else if (FontNextBounds.Contains(logicalLocation)) CycleFont(1);
+            else if (FontSizeMinusBounds.Contains(logicalLocation)) ChangeFontSize(-0.5f);
+            else if (FontSizePlusBounds.Contains(logicalLocation)) ChangeFontSize(0.5f);
             else if (BackgroundColorBounds.Contains(logicalLocation)) ChooseInlineColor();
             else if (RefreshMinusBounds.Contains(logicalLocation)) ChangeRefreshSeconds(-5);
             else if (RefreshPlusBounds.Contains(logicalLocation)) ChangeRefreshSeconds(5);
@@ -1244,6 +1290,13 @@ namespace CodexUsageOverlay
             if (index < 0) index = 0;
             index = (index + direction + fontOptions.Length) % fontOptions.Length;
             draftSettings.FontName = fontOptions[index];
+            RefreshInlinePanel();
+        }
+
+        private void ChangeFontSize(float delta)
+        {
+            float current = OverlaySettings.ClampFontSize(draftSettings.FontSize);
+            draftSettings.FontSize = OverlaySettings.ClampFontSize(current + delta);
             RefreshInlinePanel();
         }
 

@@ -16,6 +16,7 @@ New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
     (Join-Path $projectRoot 'AppDataPaths.cs') `
     (Join-Path $projectRoot 'ProductInfo.cs') `
     (Join-Path $projectRoot 'UiRendering.cs') `
+    (Join-Path $projectRoot 'OverlaySettings.cs') `
     (Join-Path $projectRoot 'OverlayInteraction.cs') `
     (Join-Path $projectRoot 'UsageData.cs') `
     (Join-Path $projectRoot 'UsageTrustPolicy.cs') `

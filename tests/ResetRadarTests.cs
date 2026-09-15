@@ -31,6 +31,7 @@ internal static class ResetRadarTests
         Run("completed schedule stays cleared after local midnight", CompletedScheduleStaysClearedAfterLocalMidnight);
         Run("layered bitmap uses logical DPI", RenderingCompatibilityTests.LayeredBitmapUsesLogicalDpi);
         Run("unsafe font falls back to text font", RenderingCompatibilityTests.UnsafeFontFallsBackToTextFont);
+        Run("overlay font size stays within supported bounds", RenderingCompatibilityTests.FontSizeStaysWithinSupportedBounds);
         Run("text renders at mixed DPI scale", RenderingCompatibilityTests.TextRendersAtMixedDpiScale);
         Run("right click main usage requests exit", OverlayInteractionTests.RightClickMainUsageRequestsExit);
         Run("other mouse buttons do not request exit", OverlayInteractionTests.OtherButtonsDoNotRequestExit);

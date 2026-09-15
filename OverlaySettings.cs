@@ -10,7 +10,12 @@ namespace CodexUsageOverlay
 {
     internal sealed class OverlaySettings
     {
+        public const float DefaultFontSize = 8.5f;
+        public const float MinFontSize = 7.5f;
+        public const float MaxFontSize = 11f;
+
         public string FontName = "Microsoft YaHei UI";
+        public float FontSize = DefaultFontSize;
         public string Theme = "NeonBlue";
         public int CustomBackgroundArgb = Color.FromArgb(24, 99, 171).ToArgb();
         public int RefreshSeconds = 15;
@@ -20,6 +25,13 @@ namespace CodexUsageOverlay
         public OverlaySettings Clone()
         {
             return (OverlaySettings)MemberwiseClone();
+        }
+
+        public static float ClampFontSize(float value)
+        {
+            if (Single.IsNaN(value) || Single.IsInfinity(value))
+                return DefaultFontSize;
+            return Math.Max(MinFontSize, Math.Min(MaxFontSize, value));
         }
     }
 
@@ -46,8 +58,10 @@ namespace CodexUsageOverlay
                     string key = line.Substring(0, split).Trim();
                     string value = line.Substring(split + 1).Trim();
                     int number;
+                    float fontSize;
                     bool enabled;
                     if (key == "FontName" && value.Length > 0) settings.FontName = value;
+                    else if (key == "FontSize" && Single.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out fontSize)) settings.FontSize = OverlaySettings.ClampFontSize(fontSize);
                     else if (key == "Theme" && value.Length > 0) settings.Theme = value;
                     else if (key == "CustomBackgroundArgb" && Int32.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out number)) settings.CustomBackgroundArgb = number;
                     else if (key == "RefreshSeconds" && Int32.TryParse(value, out number)) settings.RefreshSeconds = Math.Max(5, Math.Min(3600, number));
@@ -59,6 +73,7 @@ namespace CodexUsageOverlay
             {
             }
             settings.FontName = UiRendering.NormalizeFontName(settings.FontName);
+            settings.FontSize = OverlaySettings.ClampFontSize(settings.FontSize);
             return settings;
         }
 
@@ -83,10 +98,12 @@ namespace CodexUsageOverlay
             try
             {
                 settings.FontName = UiRendering.NormalizeFontName(settings.FontName);
+                settings.FontSize = OverlaySettings.ClampFontSize(settings.FontSize);
                 string temporary = SettingsPath + ".tmp";
                 string[] lines = new[]
                 {
                     "FontName=" + settings.FontName,
+                    "FontSize=" + settings.FontSize.ToString("0.0", CultureInfo.InvariantCulture),
                     "Theme=" + settings.Theme,
                     "CustomBackgroundArgb=" + settings.CustomBackgroundArgb.ToString(CultureInfo.InvariantCulture),
                     "RefreshSeconds=" + settings.RefreshSeconds.ToString(CultureInfo.InvariantCulture),
@@ -106,6 +123,7 @@ namespace CodexUsageOverlay
     internal sealed class SettingsForm : Form
     {
         private readonly ComboBox fontCombo;
+        private readonly NumericUpDown fontSize;
         private readonly ComboBox themeCombo;
         private readonly NumericUpDown refreshSeconds;
         private readonly CheckBox resetNotifications;
@@ -126,16 +144,17 @@ namespace CodexUsageOverlay
             ShowInTaskbar = true;
             TopMost = true;
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(430, 285);
+            ClientSize = new Size(430, 325);
             Font = UiRendering.CreateTextFont("Microsoft YaHei UI", 9f, FontStyle.Regular);
 
             TableLayoutPanel layout = new TableLayoutPanel();
             layout.Dock = DockStyle.Fill;
             layout.Padding = new Padding(18);
             layout.ColumnCount = 2;
-            layout.RowCount = 6;
+            layout.RowCount = 7;
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 125));
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
@@ -161,6 +180,14 @@ namespace CodexUsageOverlay
             if (fontIndex < 0 && fontCombo.Items.Count > 0)
                 fontIndex = 0;
             fontCombo.SelectedIndex = fontIndex;
+
+            fontSize = new NumericUpDown();
+            fontSize.Minimum = (decimal)OverlaySettings.MinFontSize;
+            fontSize.Maximum = (decimal)OverlaySettings.MaxFontSize;
+            fontSize.Increment = 0.5M;
+            fontSize.DecimalPlaces = 1;
+            fontSize.Value = (decimal)OverlaySettings.ClampFontSize(current.FontSize);
+            fontSize.Width = 110;
 
             themeCombo = new ComboBox();
             themeCombo.Dock = DockStyle.Fill;
@@ -191,14 +218,16 @@ namespace CodexUsageOverlay
 
             layout.Controls.Add(CreateLabel("字体"), 0, 0);
             layout.Controls.Add(fontCombo, 1, 0);
-            layout.Controls.Add(CreateLabel("外观预设"), 0, 1);
-            layout.Controls.Add(themeCombo, 1, 1);
-            layout.Controls.Add(CreateLabel("背景颜色"), 0, 2);
-            layout.Controls.Add(colorButton, 1, 2);
-            layout.Controls.Add(CreateLabel("自动刷新（秒）"), 0, 3);
-            layout.Controls.Add(refreshSeconds, 1, 3);
-            layout.Controls.Add(CreateLabel("重置雷达提醒"), 0, 4);
-            layout.Controls.Add(resetNotifications, 1, 4);
+            layout.Controls.Add(CreateLabel("字号（pt）"), 0, 1);
+            layout.Controls.Add(fontSize, 1, 1);
+            layout.Controls.Add(CreateLabel("外观预设"), 0, 2);
+            layout.Controls.Add(themeCombo, 1, 2);
+            layout.Controls.Add(CreateLabel("背景颜色"), 0, 3);
+            layout.Controls.Add(colorButton, 1, 3);
+            layout.Controls.Add(CreateLabel("自动刷新（秒）"), 0, 4);
+            layout.Controls.Add(refreshSeconds, 1, 4);
+            layout.Controls.Add(CreateLabel("重置雷达提醒"), 0, 5);
+            layout.Controls.Add(resetNotifications, 1, 5);
             FlowLayoutPanel buttons = new FlowLayoutPanel();
             buttons.FlowDirection = FlowDirection.RightToLeft;
             buttons.Dock = DockStyle.Fill;
@@ -213,7 +242,7 @@ namespace CodexUsageOverlay
             buttons.Controls.Add(save);
             buttons.Controls.Add(cancel);
             layout.SetColumnSpan(buttons, 2);
-            layout.Controls.Add(buttons, 0, 5);
+            layout.Controls.Add(buttons, 0, 6);
 
             AcceptButton = save;
             CancelButton = cancel;
@@ -266,6 +295,7 @@ namespace CodexUsageOverlay
         {
             SelectedSettings.FontName = UiRendering.NormalizeFontName(
                 fontCombo.SelectedItem == null ? "Microsoft YaHei UI" : fontCombo.SelectedItem.ToString());
+            SelectedSettings.FontSize = OverlaySettings.ClampFontSize((float)fontSize.Value);
             SelectedSettings.Theme = ThemeName(themeCombo.SelectedIndex);
             SelectedSettings.CustomBackgroundArgb = Color.FromArgb(255, customColor.R, customColor.G, customColor.B).ToArgb();
             SelectedSettings.RefreshSeconds = Decimal.ToInt32(refreshSeconds.Value);

@@ -61,6 +61,18 @@ namespace CodexUsageOverlay
             }
         }
 
+        public static void FontSizeStaysWithinSupportedBounds()
+        {
+            Assert(Math.Abs(OverlaySettings.ClampFontSize(6f) - OverlaySettings.MinFontSize) < 0.01f,
+                "font size did not clamp to minimum");
+            Assert(Math.Abs(OverlaySettings.ClampFontSize(12f) - OverlaySettings.MaxFontSize) < 0.01f,
+                "font size did not clamp to maximum");
+            Assert(Math.Abs(OverlaySettings.ClampFontSize(9.5f) - 9.5f) < 0.01f,
+                "valid font size changed");
+            Assert(Math.Abs(OverlaySettings.ClampFontSize(Single.NaN) - OverlaySettings.DefaultFontSize) < 0.01f,
+                "invalid font size did not use default");
+        }
+
         private static RectangleF RenderVisibleBounds(float scale)
         {
             using (Bitmap bitmap = UiRendering.CreateLayeredBitmap(
