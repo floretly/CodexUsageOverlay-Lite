@@ -217,6 +217,7 @@ namespace CodexUsageOverlay
         private OverlaySettings settings;
         private IntPtr codexWindow = IntPtr.Zero;
         private string displayText = "Codex 用量正在载入";
+        private UsageData displayUsage = new UsageData();
         private string lastRenderedText = String.Empty;
         private Rectangle lastRenderedBounds = Rectangle.Empty;
         private bool settingsExpanded;
@@ -242,11 +243,13 @@ namespace CodexUsageOverlay
         private DateTime radarRefreshRequestedUtc;
         private string settingsRevision;
         private bool rightDownStartedInMainUsage;
-        private int centeredHeaderSideMargin = 10;
+        private Rectangle renderedMainUsageBounds = Rectangle.Empty;
+        private Rectangle renderedResetRadarBounds = Rectangle.Empty;
+        private Rectangle renderedGearBounds = Rectangle.Empty;
 
-        private const int HeaderHeight = 28;
-        private const int ExpandedHeight = 236;
-        private const int MaxOverlayWidth = 568;
+        private const int HeaderHeight = 30;
+        private const int ExpandedHeight = 238;
+        private const int MaxOverlayWidth = 660;
         private const string RunwayPageUrl = "https://www.codexrunway.com/zh.html";
 
         public OverlayForm(UsageService service, OverlaySettings settings)
@@ -440,8 +443,8 @@ namespace CodexUsageOverlay
             }
 
             UsageData usage = service.Snapshot();
-            int textWidth = MaximumMainUsageWidth;
-            displayText = BuildDisplayText(usage, textWidth);
+            displayUsage = usage.Clone();
+            displayText = BuildDisplayText(usage, Int32.MaxValue);
             bool scheduledRadar = resetRadar.Status == ResetRadarStatus.ScheduledToday ||
                 resetRadar.Status == ResetRadarStatus.ScheduledUpcoming;
             string radarClockRevision = scheduledRadar && resetRadar.EffectiveAt.HasValue
@@ -591,27 +594,22 @@ namespace CodexUsageOverlay
                 int canvasHeight = CanvasHeight;
                 Color borderColor = Color.FromArgb(105, 48, 180, 255);
                 Color textColor = Color.FromArgb(255, 21, 120, 164);
-                Color glowColor = Color.FromArgb(105, 255, 255, 255);
                 OverlaySettings visualSettings = settingsExpanded && draftSettings != null ? draftSettings : settings;
-                bool rainbowText = visualSettings.Theme == "RainbowText";
 
                 if (visualSettings.Theme == "FrostedGlass")
                 {
                     borderColor = Color.FromArgb(150, 255, 255, 255);
                     textColor = Color.FromArgb(255, 28, 55, 78);
-                    glowColor = Color.FromArgb(92, 255, 255, 255);
                 }
                 else if (visualSettings.Theme == "OrangeGradient")
                 {
                     borderColor = Color.FromArgb(180, 216, 95, 49);
                     textColor = Color.FromArgb(255, 216, 95, 49);
-                    glowColor = Color.FromArgb(112, 255, 255, 255);
                 }
                 else if (visualSettings.Theme == "PinkGradient")
                 {
                     borderColor = Color.FromArgb(180, 195, 63, 145);
                     textColor = Color.FromArgb(255, 195, 63, 145);
-                    glowColor = Color.FromArgb(112, 255, 255, 255);
                 }
                 else if (visualSettings.Theme == "Custom")
                 {
@@ -623,13 +621,11 @@ namespace CodexUsageOverlay
                         (int)Math.Round(custom.G * scale),
                         (int)Math.Round(custom.B * scale));
                     borderColor = Color.FromArgb(180, textColor.R, textColor.G, textColor.B);
-                    glowColor = Color.FromArgb(112, 255, 255, 255);
                 }
-                else if (rainbowText)
+                else if (visualSettings.Theme == "RainbowText")
                 {
                     borderColor = Color.Transparent;
                     textColor = Color.FromArgb(255, 25, 105, 145);
-                    glowColor = Color.FromArgb(82, 255, 255, 255);
                 }
 
                 if (settingsExpanded)
@@ -647,66 +643,289 @@ namespace CodexUsageOverlay
                     }
                 }
 
-                UpdateCenteredHeaderLayout(visualSettings);
-                Rectangle gear = GearBounds;
-                RectangleF box = MainUsageBounds;
-                using (Font font = UiRendering.CreateTextFont(
-                    visualSettings.FontName,
-                    OverlaySettings.ClampFontSize(visualSettings.FontSize),
-                    FontStyle.Bold))
-                using (StringFormat format = UiRendering.CreateTextFormat())
-                {
-                    format.Alignment = StringAlignment.Far;
-                    format.LineAlignment = StringAlignment.Center;
-                    format.Trimming = StringTrimming.EllipsisCharacter;
-                    format.FormatFlags |= StringFormatFlags.NoWrap;
-
-                    int glowRadius = settingsExpanded ? 1 : 2;
-                    for (int x = -glowRadius; x <= glowRadius; x++)
-                    {
-                        for (int y = -glowRadius; y <= glowRadius; y++)
-                        {
-                            if (x == 0 && y == 0)
-                                continue;
-                            int distance = Math.Abs(x) + Math.Abs(y);
-                            int alpha = distance <= 2 ? glowColor.A : Math.Max(6, glowColor.A / 3);
-                            using (Brush glow = new SolidBrush(Color.FromArgb(alpha, glowColor.R, glowColor.G, glowColor.B)))
-                                graphics.DrawString(displayText, font, glow,
-                                    new RectangleF(box.X + x, box.Y + y, box.Width, box.Height), format);
-                        }
-                    }
-
-                    using (Brush text = CreateDisplayTextBrush(box, textColor, rainbowText))
-                        graphics.DrawString(displayText, font, text, box, format);
-                }
-
-                DrawResetRadar(graphics, resetRadar, visualSettings);
-
-                if (gearHovered || gearPressed)
-                {
-                    Color gearFillColor = gearPressed
-                        ? Color.FromArgb(112, textColor.R, textColor.G, textColor.B)
-                        : Color.FromArgb(58, textColor.R, textColor.G, textColor.B);
-                    using (GraphicsPath gearHighlightPath = RoundedRectangle(GearBounds, 7))
-                    using (Brush gearHighlight = new SolidBrush(gearFillColor))
-                        graphics.FillPath(gearHighlight, gearHighlightPath);
-                }
-
-                using (Pen divider = new Pen(Color.FromArgb(70, textColor.R, textColor.G, textColor.B), 1f))
-                    graphics.DrawLine(divider, gear.Left, 6, gear.Left, HeaderHeight - 6);
-                using (Font gearFont = new Font("Segoe MDL2 Assets", 10f, FontStyle.Regular, GraphicsUnit.Point))
-                using (Brush gearBrush = new SolidBrush(textColor))
-                using (StringFormat gearFormat = new StringFormat())
-                {
-                    gearFormat.Alignment = StringAlignment.Center;
-                    gearFormat.LineAlignment = StringAlignment.Center;
-                    graphics.DrawString("\uE713", gearFont, gearBrush, gear, gearFormat);
-                }
+                DrawDesignedHeader(graphics, visualSettings);
 
                 if (settingsExpanded && draftSettings != null)
                     DrawInlineSettings(graphics, textColor, borderColor, visualSettings);
             }
             return bitmap;
+        }
+
+        private void DrawDesignedHeader(Graphics graphics, OverlaySettings visualSettings)
+        {
+            int canvasWidth = CanvasWidth;
+            Rectangle shadowBounds = new Rectangle(3, 4, Math.Max(1, canvasWidth - 6), HeaderHeight - 5);
+            Rectangle panelBounds = new Rectangle(2, 1, Math.Max(1, canvasWidth - 4), HeaderHeight - 4);
+            using (GraphicsPath shadowPath = RoundedRectangle(shadowBounds, 11))
+            using (Brush shadow = new SolidBrush(Color.FromArgb(28, 41, 72, 98)))
+                graphics.FillPath(shadow, shadowPath);
+            using (GraphicsPath panelPath = RoundedRectangle(panelBounds, 11))
+            using (LinearGradientBrush panel = new LinearGradientBrush(
+                panelBounds,
+                Color.FromArgb(250, 255, 255, 255),
+                Color.FromArgb(246, 247, 251, 255),
+                LinearGradientMode.Vertical))
+            using (Pen panelBorder = new Pen(Color.FromArgb(118, 224, 232, 239), 1f))
+            {
+                graphics.FillPath(panel, panelPath);
+                graphics.DrawPath(panelBorder, panelPath);
+            }
+
+            float baseSize = OverlaySettings.ClampFontSize(visualSettings.FontSize);
+            float emphasisSize = Math.Min(OverlaySettings.MaxFontSize + 1.5f, baseSize + 1.2f);
+            float iconSize = Math.Max(8.5f, baseSize + 1.1f);
+            string shortLabel = GetShortWindowLabel(displayUsage);
+            string shortRemaining = FormatRemaining(
+                displayUsage.ShortRemaining,
+                displayUsage.RateLimitStatus != "待刷新");
+            string shortReset = HasResetText(displayUsage.ShortResetText)
+                ? "· " + FormatResetText(displayUsage.ShortResetText)
+                : String.Empty;
+            string weeklyRemaining = FormatRemaining(
+                displayUsage.WeeklyRemaining,
+                displayUsage.RateLimitStatus != "待刷新");
+            string weeklyReset = HasResetText(displayUsage.WeeklyResetText)
+                ? "· " + FormatResetText(displayUsage.WeeklyResetText)
+                : String.Empty;
+            string creditsText = "重置券 " + (displayUsage.AvailableResetCredits.HasValue
+                ? displayUsage.AvailableResetCredits.Value.ToString(CultureInfo.InvariantCulture)
+                : "—");
+            string tokenText = (!String.IsNullOrWhiteSpace(displayUsage.ProfileTokensText)
+                ? displayUsage.ProfileTokensText
+                : "待刷新") + " Token";
+            string radarLabel = GetHeaderRadarLabel(resetRadar);
+
+            Color neutral = Color.FromArgb(255, 34, 68, 96);
+            Color muted = Color.FromArgb(255, 132, 153, 173);
+            Color pink = Color.FromArgb(255, 244, 35, 132);
+            Color purple = Color.FromArgb(255, 126, 31, 246);
+            Color resetBlue = Color.FromArgb(255, 61, 82, 232);
+            Color tokenBlue = Color.FromArgb(255, 24, 119, 232);
+            Color divider = Color.FromArgb(170, 205, 216, 226);
+
+            using (Font normalFont = UiRendering.CreateTextFont(
+                visualSettings.FontName, baseSize, FontStyle.Regular))
+            using (Font strongFont = UiRendering.CreateTextFont(
+                visualSettings.FontName, baseSize, FontStyle.Bold))
+            using (Font emphasisFont = UiRendering.CreateTextFont(
+                visualSettings.FontName, emphasisSize, FontStyle.Bold))
+            using (Font iconFont = CreateHeaderIconFont(iconSize))
+            using (Font radarIconFont = new Font(
+                "Segoe MDL2 Assets", Math.Max(16f, baseSize + 8f), FontStyle.Regular, GraphicsUnit.Point))
+            using (Font gearIconFont = CreateHeaderIconFont(Math.Max(11.5f, baseSize + 3f)))
+            using (Brush neutralBrush = new SolidBrush(neutral))
+            using (Brush mutedBrush = new SolidBrush(muted))
+            using (Brush pinkBrush = new SolidBrush(pink))
+            using (Brush purpleBrush = new SolidBrush(purple))
+            using (Brush resetBrush = new SolidBrush(resetBlue))
+            using (Brush tokenBrush = new SolidBrush(tokenBlue))
+            using (StringFormat near = UiRendering.CreateTextFormat())
+            using (StringFormat center = UiRendering.CreateTextFormat())
+            {
+                near.Alignment = StringAlignment.Near;
+                near.LineAlignment = StringAlignment.Center;
+                near.FormatFlags |= StringFormatFlags.NoWrap;
+                center.Alignment = StringAlignment.Center;
+                center.LineAlignment = StringAlignment.Center;
+                center.FormatFlags |= StringFormatFlags.NoWrap;
+
+                int circleSize = ScaleHeaderSpacing(20);
+                int iconGap = ScaleHeaderSpacing(5);
+                int textGap = ScaleHeaderSpacing(5);
+                int dividerPadding = ScaleHeaderSpacing(7);
+                int pillGap = ScaleHeaderSpacing(6);
+                int pillPadding = ScaleHeaderSpacing(7);
+                int pillIconWidth = ScaleHeaderSpacing(14);
+                int radarIconWidth = ScaleHeaderSpacing(22);
+                int gearSize = ScaleHeaderSpacing(22);
+                int pillHeight = 20;
+
+                int shortLabelWidth = MeasureHeaderText(graphics, shortLabel, normalFont);
+                int shortRemainingWidth = MeasureHeaderText(graphics, shortRemaining, emphasisFont);
+                int shortResetWidth = MeasureHeaderText(graphics, shortReset, normalFont);
+                int weeklyLabelWidth = MeasureHeaderText(graphics, "本周", normalFont);
+                int weeklyRemainingWidth = MeasureHeaderText(graphics, weeklyRemaining, emphasisFont);
+                int weeklyResetWidth = MeasureHeaderText(graphics, weeklyReset, normalFont);
+                int creditsTextWidth = MeasureHeaderText(graphics, creditsText, strongFont);
+                int tokenTextWidth = MeasureHeaderText(graphics, tokenText, normalFont);
+                int radarTextWidth = MeasureHeaderText(graphics, radarLabel, strongFont);
+
+                int shortWidth = circleSize + iconGap + shortLabelWidth + textGap + shortRemainingWidth +
+                    (shortResetWidth > 0 ? textGap + shortResetWidth : 0);
+                int weeklyWidth = circleSize + iconGap + weeklyLabelWidth + textGap + weeklyRemainingWidth +
+                    (weeklyResetWidth > 0 ? textGap + weeklyResetWidth : 0);
+                int creditsWidth = pillPadding * 2 + pillIconWidth + iconGap + creditsTextWidth;
+                int tokenWidth = pillPadding * 2 + pillIconWidth + iconGap + tokenTextWidth;
+                int radarWidth = radarIconWidth + iconGap + radarTextWidth;
+                int dividerBlock = dividerPadding * 2 + 1;
+                int contentWidth = shortWidth + dividerBlock + weeklyWidth + dividerBlock + creditsWidth +
+                    pillGap + tokenWidth + dividerBlock + radarWidth + dividerBlock + gearSize;
+                int x = Math.Max(ScaleHeaderSpacing(6), (canvasWidth - contentWidth) / 2);
+                int mainStart = x;
+
+                DrawHeaderIconCircle(graphics, new Rectangle(
+                    x, (HeaderHeight - circleSize) / 2, circleSize, circleSize),
+                    "\uE121", iconFont, pink, Color.FromArgb(34, pink.R, pink.G, pink.B), center);
+                x += circleSize + iconGap;
+                x = DrawHeaderText(graphics, shortLabel, normalFont, neutralBrush, near, x, shortLabelWidth);
+                x += textGap;
+                x = DrawHeaderText(graphics, shortRemaining, emphasisFont, pinkBrush, near, x, shortRemainingWidth);
+                if (shortResetWidth > 0)
+                {
+                    x += textGap;
+                    x = DrawHeaderText(graphics, shortReset, normalFont, neutralBrush, near, x, shortResetWidth);
+                }
+
+                x = DrawHeaderDivider(graphics, x, dividerPadding, divider);
+
+                DrawHeaderIconCircle(graphics, new Rectangle(
+                    x, (HeaderHeight - circleSize) / 2, circleSize, circleSize),
+                    "\uE787", iconFont, purple, Color.FromArgb(31, purple.R, purple.G, purple.B), center);
+                x += circleSize + iconGap;
+                x = DrawHeaderText(graphics, "本周", normalFont, neutralBrush, near, x, weeklyLabelWidth);
+                x += textGap;
+                x = DrawHeaderText(graphics, weeklyRemaining, emphasisFont, purpleBrush, near, x, weeklyRemainingWidth);
+                if (weeklyResetWidth > 0)
+                {
+                    x += textGap;
+                    x = DrawHeaderText(graphics, weeklyReset, normalFont, neutralBrush, near, x, weeklyResetWidth);
+                }
+
+                x = DrawHeaderDivider(graphics, x, dividerPadding, divider);
+                x = DrawHeaderPill(graphics, x, creditsWidth, pillHeight, "\uE8EC", creditsText,
+                    iconFont, strongFont, resetBrush, resetBlue,
+                    Color.FromArgb(28, 83, 107, 239), pillPadding, pillIconWidth, iconGap, center, near);
+                x += pillGap;
+                x = DrawHeaderPill(graphics, x, tokenWidth, pillHeight, "\uE8C7", tokenText,
+                    iconFont, normalFont, tokenBrush, tokenBlue,
+                    Color.FromArgb(28, 33, 151, 235), pillPadding, pillIconWidth, iconGap, center, near);
+                renderedMainUsageBounds = new Rectangle(
+                    mainStart, 1, Math.Max(1, x - mainStart), HeaderHeight - 3);
+
+                x = DrawHeaderDivider(graphics, x, dividerPadding, divider);
+                int radarStart = x;
+                Color radarFill;
+                Color radarBorder;
+                Color radarColor;
+                GetResetRadarColors(resetRadar.Status, out radarFill, out radarBorder, out radarColor);
+                if (resetRadar.Status == ResetRadarStatus.NoSignal)
+                    radarColor = Color.FromArgb(255, 72, 101, 124);
+                Rectangle radarBounds = new Rectangle(
+                    radarStart - ScaleHeaderSpacing(3), 3,
+                    radarWidth + ScaleHeaderSpacing(6), HeaderHeight - 6);
+                if (radarHovered)
+                {
+                    using (GraphicsPath hoverPath = RoundedRectangle(radarBounds, 8))
+                    using (Brush hover = new SolidBrush(Color.FromArgb(24, radarColor.R, radarColor.G, radarColor.B)))
+                        graphics.FillPath(hover, hoverPath);
+                }
+                using (Brush radarBrush = new SolidBrush(radarColor))
+                {
+                    graphics.DrawString("\uE704", radarIconFont, radarBrush,
+                        new Rectangle(x, 0, radarIconWidth, HeaderHeight), center);
+                    x += radarIconWidth + iconGap;
+                    x = DrawHeaderText(graphics, radarLabel, strongFont, radarBrush, near, x, radarTextWidth);
+                }
+                renderedResetRadarBounds = radarBounds;
+
+                x = DrawHeaderDivider(graphics, x, dividerPadding, divider);
+                Rectangle gearBounds = new Rectangle(x, (HeaderHeight - gearSize) / 2, gearSize, gearSize);
+                Color gearFill = gearPressed
+                    ? Color.FromArgb(86, 87, 111, 132)
+                    : (gearHovered ? Color.FromArgb(58, 87, 111, 132) : Color.FromArgb(29, 113, 139, 162));
+                using (Brush gearBackground = new SolidBrush(gearFill))
+                    graphics.FillEllipse(gearBackground, gearBounds);
+                graphics.DrawString("\uE713", gearIconFont, neutralBrush, gearBounds, center);
+                renderedGearBounds = gearBounds;
+            }
+        }
+
+        private static Font CreateHeaderIconFont(float size)
+        {
+            Font font = new Font("Segoe Fluent Icons", size, FontStyle.Regular, GraphicsUnit.Point);
+            if (String.Equals(font.Name, "Segoe Fluent Icons", StringComparison.OrdinalIgnoreCase))
+                return font;
+            font.Dispose();
+            return new Font("Segoe MDL2 Assets", size, FontStyle.Regular, GraphicsUnit.Point);
+        }
+
+        private static int MeasureHeaderText(Graphics graphics, string text, Font font)
+        {
+            if (String.IsNullOrEmpty(text))
+                return 0;
+            using (StringFormat format = (StringFormat)StringFormat.GenericTypographic.Clone())
+            {
+                format.FormatFlags |= StringFormatFlags.NoWrap;
+                return (int)Math.Ceiling(graphics.MeasureString(text, font, 10000, format).Width);
+            }
+        }
+
+        private static int DrawHeaderText(Graphics graphics, string text, Font font, Brush brush,
+            StringFormat format, int x, int width)
+        {
+            if (width > 0)
+                graphics.DrawString(text, font, brush, new Rectangle(x, 0, width, HeaderHeight), format);
+            return x + width;
+        }
+
+        private static int DrawHeaderDivider(Graphics graphics, int x, int padding, Color color)
+        {
+            x += padding;
+            using (Pen separator = new Pen(color, 1f))
+                graphics.DrawLine(separator, x, 7, x, HeaderHeight - 7);
+            return x + 1 + padding;
+        }
+
+        private static void DrawHeaderIconCircle(Graphics graphics, Rectangle bounds, string glyph,
+            Font iconFont, Color iconColor, Color fillColor, StringFormat center)
+        {
+            using (Brush fill = new SolidBrush(fillColor))
+            using (Brush icon = new SolidBrush(iconColor))
+            {
+                graphics.FillEllipse(fill, bounds);
+                graphics.DrawString(glyph, iconFont, icon, bounds, center);
+            }
+        }
+
+        private static int DrawHeaderPill(Graphics graphics, int x, int width, int height,
+            string glyph, string text, Font iconFont, Font textFont, Brush textBrush, Color iconColor,
+            Color fillColor, int padding, int iconWidth, int gap, StringFormat center, StringFormat near)
+        {
+            Rectangle bounds = new Rectangle(x, (HeaderHeight - height) / 2, width, height);
+            using (GraphicsPath path = RoundedRectangle(bounds, height / 2))
+            using (Brush fill = new SolidBrush(fillColor))
+            using (Brush icon = new SolidBrush(iconColor))
+            {
+                graphics.FillPath(fill, path);
+                graphics.DrawString(glyph, iconFont, icon,
+                    new Rectangle(x + padding, 0, iconWidth, HeaderHeight), center);
+                graphics.DrawString(text, textFont, textBrush,
+                    new Rectangle(x + padding + iconWidth + gap, 0,
+                        width - padding * 2 - iconWidth - gap, HeaderHeight), near);
+            }
+            return x + width;
+        }
+
+        private static string GetShortWindowLabel(UsageData usage)
+        {
+            long minutes = usage.ShortWindowMinutes.HasValue && usage.ShortWindowMinutes.Value > 0
+                ? usage.ShortWindowMinutes.Value
+                : 300;
+            return minutes % 60 == 0
+                ? (minutes / 60).ToString(CultureInfo.InvariantCulture) + "小时"
+                : minutes.ToString(CultureInfo.InvariantCulture) + "分钟";
+        }
+
+        private static string GetHeaderRadarLabel(ResetRadarData radar)
+        {
+            if (radar.Status == ResetRadarStatus.CompletedToday)
+                return "今日已重置";
+            if (radar.Status == ResetRadarStatus.ScheduledToday ||
+                radar.Status == ResetRadarStatus.ScheduledUpcoming)
+                return "重置预告";
+            if (radar.Status == ResetRadarStatus.Offline)
+                return "雷达离线";
+            return "暂无信号";
         }
 
         public void ExportThemePreviews(string outputDirectory)
@@ -716,6 +935,7 @@ namespace CodexUsageOverlay
             OverlaySettings originalSettings = settings;
             OverlaySettings originalDraft = draftSettings;
             string originalText = displayText;
+            UsageData originalUsage = displayUsage;
             bool originalExpanded = settingsExpanded;
             ResetRadarData originalResetRadar = resetRadar;
             DateTimeOffset? originalResetRadarDisplayNow = resetRadarDisplayNow;
@@ -725,7 +945,18 @@ namespace CodexUsageOverlay
             Directory.CreateDirectory(outputDirectory);
             try
             {
-                displayText = "5小时 59% · 19:17   本周 60% · 9/21 08:57   重置券 3   27.1亿 Token";
+                displayUsage = new UsageData
+                {
+                    ShortRemaining = 54,
+                    ShortWindowMinutes = 300,
+                    ShortResetText = "19:17",
+                    WeeklyRemaining = 59,
+                    WeeklyResetText = "9月21日 08:57",
+                    AvailableResetCredits = 3,
+                    ProfileTokensText = "27.1亿",
+                    RateLimitStatus = "正常"
+                };
+                displayText = BuildDisplayText(displayUsage, Int32.MaxValue);
                 resetRadar = new ResetRadarData
                 {
                     Status = ResetRadarStatus.NoSignal,
@@ -780,6 +1011,7 @@ namespace CodexUsageOverlay
                 settings = originalSettings;
                 draftSettings = originalDraft;
                 displayText = originalText;
+                displayUsage = originalUsage;
                 settingsExpanded = originalExpanded;
                 resetRadar = originalResetRadar;
                 resetRadarDisplayNow = originalResetRadarDisplayNow;
@@ -1026,11 +1258,9 @@ namespace CodexUsageOverlay
         {
             get
             {
-                return new Rectangle(
-                    Math.Max(0, CanvasWidth - centeredHeaderSideMargin - 30),
-                    2,
-                    30,
-                    HeaderHeight - 4);
+                return renderedGearBounds.IsEmpty
+                    ? new Rectangle(Math.Max(0, CanvasWidth - 28), 4, 22, 22)
+                    : renderedGearBounds;
             }
         }
 
@@ -1038,13 +1268,9 @@ namespace CodexUsageOverlay
         {
             get
             {
-                int width = CanvasWidth < 500 ? 22 : 104;
-                int gap = ScaleHeaderSpacing(6);
-                return new Rectangle(
-                    Math.Max(0, GearBounds.Left - width - gap),
-                    (HeaderHeight - 20) / 2,
-                    width,
-                    20);
+                return renderedResetRadarBounds.IsEmpty
+                    ? new Rectangle(Math.Max(0, GearBounds.Left - 104), 4, 98, 22)
+                    : renderedResetRadarBounds;
             }
         }
 
@@ -1052,44 +1278,9 @@ namespace CodexUsageOverlay
         {
             get
             {
-                return OverlayInteraction.GetMainUsageBounds(
-                    ResetRadarBounds.Left,
-                    HeaderHeight,
-                    centeredHeaderSideMargin,
-                    ScaleHeaderSpacing(4));
-            }
-        }
-
-        private int MaximumMainUsageWidth
-        {
-            get
-            {
-                int minimumSideMargin = ScaleHeaderSpacing(4);
-                int radarWidth = CanvasWidth < 500 ? 22 : 104;
-                return Math.Max(40,
-                    CanvasWidth - minimumSideMargin * 2 - 30 -
-                    ScaleHeaderSpacing(6) - radarWidth - ScaleHeaderSpacing(4));
-            }
-        }
-
-        private void UpdateCenteredHeaderLayout(OverlaySettings visualSettings)
-        {
-            using (Font font = UiRendering.CreateTextFont(
-                visualSettings.FontName,
-                OverlaySettings.ClampFontSize(visualSettings.FontSize),
-                FontStyle.Bold))
-            {
-                Size measured = TextRenderer.MeasureText(
-                    displayText,
-                    font,
-                    new Size(10000, HeaderHeight),
-                    TextFormatFlags.SingleLine | TextFormatFlags.NoPadding);
-                int radarWidth = CanvasWidth < 500 ? 22 : 104;
-                int contentWidth = measured.Width + ScaleHeaderSpacing(4) + radarWidth +
-                    ScaleHeaderSpacing(6) + 30;
-                centeredHeaderSideMargin = Math.Max(
-                    ScaleHeaderSpacing(4),
-                    (CanvasWidth - contentWidth) / 2);
+                return renderedMainUsageBounds.IsEmpty
+                    ? OverlayInteraction.GetMainUsageBounds(ResetRadarBounds.Left, HeaderHeight)
+                    : renderedMainUsageBounds;
             }
         }
 
@@ -1097,71 +1288,6 @@ namespace CodexUsageOverlay
         {
             OverlaySettings visualSettings = settingsExpanded && draftSettings != null ? draftSettings : settings;
             return OverlaySettings.ScaleHorizontalLayout(value, visualSettings.FontSize);
-        }
-
-        private void DrawResetRadar(Graphics graphics, ResetRadarData radar, OverlaySettings visualSettings)
-        {
-            Rectangle bounds = ResetRadarBounds;
-            bool quietNoSignal = radar.Status == ResetRadarStatus.NoSignal;
-            Color fill;
-            Color border;
-            Color dot;
-            GetResetRadarColors(radar.Status, out fill, out border, out dot);
-            Color labelColor = Color.White;
-            if (quietNoSignal)
-            {
-                labelColor = Color.FromArgb(255, 72, 101, 124);
-                dot = Color.FromArgb(255, 111, 155, 184);
-            }
-
-            if (radarHovered)
-            {
-                using (GraphicsPath hoverPath = RoundedRectangle(bounds, 10))
-                using (Brush hoverBrush = new SolidBrush(Color.FromArgb(24, border.R, border.G, border.B)))
-                    graphics.FillPath(hoverBrush, hoverPath);
-            }
-
-            using (GraphicsPath chipPath = RoundedRectangle(bounds, 10))
-            using (Pen chipBorder = new Pen(Color.FromArgb(
-                quietNoSignal ? 155 : 205,
-                border.R,
-                border.G,
-                border.B), 1f))
-                graphics.DrawPath(chipBorder, chipPath);
-
-            int dotSize = bounds.Width <= 24 ? 8 : 7;
-            int dotLeft = bounds.Width <= 24 ? bounds.Left + (bounds.Width - dotSize) / 2 : bounds.Left + 8;
-            int dotTop = bounds.Top + (bounds.Height - dotSize) / 2;
-            using (Pen dotPen = new Pen(dot, 1.25f))
-            {
-                graphics.DrawEllipse(dotPen, dotLeft, dotTop, dotSize, dotSize);
-                if (!quietNoSignal)
-                    using (Brush activeDot = new SolidBrush(dot))
-                        graphics.FillEllipse(activeDot, dotLeft + 2, dotTop + 2, dotSize - 3, dotSize - 3);
-            }
-
-            if (bounds.Width > 24)
-            {
-                using (Font font = UiRendering.CreateTextFont(
-                    visualSettings.FontName,
-                    Math.Max(7f, OverlaySettings.ClampFontSize(visualSettings.FontSize) - 0.5f),
-                    FontStyle.Bold))
-                using (Brush text = new SolidBrush(labelColor))
-                using (StringFormat format = UiRendering.CreateTextFormat())
-                {
-                    format.Alignment = StringAlignment.Near;
-                    format.LineAlignment = StringAlignment.Center;
-                    format.Trimming = StringTrimming.EllipsisCharacter;
-                    format.FormatFlags |= StringFormatFlags.NoWrap;
-                    string pillLabel = quietNoSignal
-                        ? "暂无信号"
-                        : ResetRadarDisplay.BuildPillLabel(
-                            radar,
-                            resetRadarDisplayNow ?? DateTimeOffset.Now);
-                    graphics.DrawString(pillLabel, font, text,
-                        new Rectangle(bounds.Left + 22, bounds.Top, bounds.Width - 28, bounds.Height), format);
-                }
-            }
         }
 
         private static void GetResetRadarColors(ResetRadarStatus status, out Color fill, out Color border, out Color dot)

@@ -1,45 +1,45 @@
-# Design QA — Centered reset status chip
+# Design QA — User-designed segmented header
 
-- Source visual truth: `C:\Users\sothing\.codex\generated_images\01a0a325-11b1-7a51-86ed-dec277fe1c6d\exec-1e2085bb-a986-4b6c-946c-f029dbeef7db.png`
-- Implementation screenshot: `C:\Users\sothing\Documents\ChatGPT\额度组件\ui-preview\centered-status-chip-white.png`
-- Combined comparison: `C:\Users\sothing\Documents\ChatGPT\额度组件\ui-preview\status-chip-design-comparison.png`
-- Viewport: 601 × 28 logical pixels at the current configured font scale
-- Source pixels: 2170 × 725; normalized from crop `(0, 286, 2170, 101)` to 601 × 28
-- Implementation pixels: 601 × 28 at 1× preview density
-- State: Frosted Glass theme, collapsed overlay, reset radar has no signal
+- Source visual truth: `D:\ChatGPT Image 2026年9月15日 16_07_54.png`
+- Implementation screenshot: `C:\Users\sothing\Documents\ChatGPT\额度组件\ui-preview\frosted-glass-collapsed.png`
+- Combined comparison: `C:\Users\sothing\Documents\ChatGPT\额度组件\ui-preview\user-mockup-header-comparison.png`
+- Source pixels: 2089 × 753
+- Source component crop: `(80, 243, 1895, 128)`, proportionally normalized to 699 × 47
+- Implementation viewport and pixels: 699 × 30 at 1× preview density and the current configured font scale
+- State: collapsed overlay, no reset signal, representative live-usage values
 
 ## Full-view comparison evidence
 
-The normalized source and implementation are stacked in the combined comparison image. The implementation preserves the selected direction: transparent rounded chip, thin muted outline, hollow status indicator, compact label, separate gear divider, and no button-like fill or shadow.
+The normalized source component and the native implementation are stacked in the combined comparison image. The implementation matches the source information architecture and visual rhythm: white rounded surface, pink short-window accent, purple weekly accent, two light-blue utility pills, radio-status group, dividers, circular settings control, and centered composition.
 
-The visible content group is centered as a whole. Its left and right optical margins are approximately equal after measuring the rendered quota text and distributing the remaining width on both sides.
+The implementation is intentionally 30 logical pixels tall so it fits the 36-pixel Codex title bar. The source is a presentation mock with a substantially taller aspect ratio, so its crop is shown at proportional width rather than stretched vertically.
 
 ## Focused-region comparison evidence
 
-The full implementation is itself a 601 × 28 component crop, and the status chip remains readable at original size in the combined comparison. A second crop would not reveal additional detail.
+The full implementation is already a 699 × 30 component-only capture. Icons, text, pills, separators, borders, and the shadow remain readable at original size in the combined comparison, so a second crop would not expose additional fidelity information.
 
 ## Required fidelity surfaces
 
-- Fonts and typography: Existing safe-font selection and adjustable font size are preserved. Main text and radar label retain the established bold hierarchy and single-line ellipsis behavior.
-- Spacing and layout rhythm: The overlay window is centered in the Codex title bar, and the visible text/chip/gear group is independently optically centered using measured text width. Chip padding and the gear divider follow the selected compact rhythm.
-- Colors and visual tokens: The no-signal state uses the existing muted blue-gray semantic colors with reduced border opacity. Hover adds only a subtle tint.
-- Image quality and asset fidelity: No raster assets are required. The status indicator and rounded border are native GDI shapes, so they stay sharp across DPI scales.
-- Copy and content: `暂无信号` matches the selected design and existing radar state copy.
+- Fonts and typography: The selected safe UI font remains user-configurable. Labels and reset times use regular weight; percentages, reset credits, and radar copy use stronger optical weight. All content stays on one line.
+- Spacing and layout rhythm: Six groups follow the source order and use measured widths. The complete visible group and the overlay window are both centered. Horizontal dimensions continue to scale with the configured font size.
+- Colors and visual tokens: Short-window emphasis uses vivid pink, weekly emphasis uses violet, utility pills use cool blue tints, and the remaining copy uses dark blue-gray. The white panel has a restrained border, vertical gradient, and soft shadow.
+- Image quality and asset fidelity: Clock, calendar, tag, payment card, radio, and settings symbols use Segoe Fluent Icons or Segoe MDL2 Assets so they remain sharp at different DPI scales. The tag and payment-card symbols are the closest system-native substitutes for the mock's ticket and coin-stack symbols.
+- Copy and content: Live short-window, weekly, reset-credit, lifetime-token, and radar values map to the same visual locations as the source.
 
 ## Comparison history
 
 ### First pass
 
-- P2: The transparent overlay window was centered, but the visible content group remained right-biased because the quota text was right-aligned inside a wider main-text region.
-- Fix: Measure the rendered quota text and calculate equal dynamic side margins for the complete text + radar + gear group.
+- P2: The radio glyph and settings glyph were visibly smaller than the source hierarchy.
+- Fix: Added dedicated larger icon fonts for the radar and settings controls while preserving the 30-pixel title-bar limit.
 
 ### Second pass
 
-- Post-fix evidence: `status-chip-design-comparison.png` shows balanced outer margins and alignment consistent with the user's added centering requirement.
+- Post-fix evidence: `user-mockup-header-comparison.png` shows the corrected radio and gear hierarchy with balanced outer margins.
 - No actionable P0, P1, or P2 findings remain.
 
 ## Follow-up polish
 
-- P3: The generated concept exaggerates type and gear size because it is an enlarged synthetic mock. The implementation intentionally keeps the existing title-bar typography, adjustable font setting, and native gear scale.
+- P3: A bespoke ticket and coin-stack asset could match the mock more literally, but the current Windows system icons are clearer and more robust at the component's real 30-pixel height.
 
 final result: passed
