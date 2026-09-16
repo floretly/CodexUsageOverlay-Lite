@@ -71,10 +71,10 @@ Codex Usage Overlay Lite 运行在 Windows 桌面上，不修改 Codex 主程序
 从本仓库的 [Releases](https://github.com/floretly/CodexUsageOverlay-Lite/releases) 下载当前安装包：
 
 直接下载：
-https://github.com/floretly/CodexUsageOverlay-Lite/releases/download/v1.0.16/CodexUsageOverlay-Lite-Setup-1.0.16.exe
+https://github.com/floretly/CodexUsageOverlay-Lite/releases/download/v1.0.17/CodexUsageOverlay-Lite-Setup-1.0.17.exe
 
 ```text
-CodexUsageOverlay-Lite-Setup-1.0.16.exe
+CodexUsageOverlay-Lite-Setup-1.0.17.exe
 ```
 
 SHA-256 校验值在同一 Release 的 `SHA256SUMS.txt` 中。
@@ -95,7 +95,7 @@ SHA-256 校验值在同一 Release 的 `SHA256SUMS.txt` 中。
 静默安装参数：
 
 ```powershell
-.\CodexUsageOverlay-Lite-Setup-1.0.16.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS
+.\CodexUsageOverlay-Lite-Setup-1.0.17.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS
 ```
 
 ### 从源码构建
