@@ -252,8 +252,7 @@ namespace CodexUsageOverlay
         private const int ExpandedHeight = 238;
         private const int BaseOverlayWidth = 720;
         private const int HeaderHorizontalMargin = 12;
-        private const int HeaderRightOffset = 8;
-        private const int EmphasisTextVerticalOffset = -1;
+        private const int HeaderRightOffset = 26;
         private const string RunwayPageUrl = "https://www.codexrunway.com/zh.html";
 
         public OverlayForm(UsageService service, OverlaySettings settings)
@@ -664,53 +663,49 @@ namespace CodexUsageOverlay
         {
             int canvasWidth = CanvasWidth;
             float baseSize = OverlaySettings.ClampFontSize(visualSettings.FontSize);
-            float emphasisSize = Math.Min(OverlaySettings.MaxFontSize + 1.5f, baseSize + 1.2f);
-            float iconSize = Math.Max(8.5f, baseSize + 1.1f);
             string shortLabel = GetShortWindowLabel(displayUsage);
             string shortRemaining = FormatRemaining(
                 displayUsage.ShortRemaining,
                 displayUsage.RateLimitStatus != "待刷新");
             string shortReset = HasResetText(displayUsage.ShortResetText)
-                ? "· " + FormatResetText(displayUsage.ShortResetText)
+                ? FormatResetText(displayUsage.ShortResetText)
                 : String.Empty;
             string weeklyRemaining = FormatRemaining(
                 displayUsage.WeeklyRemaining,
                 displayUsage.RateLimitStatus != "待刷新");
             string weeklyReset = HasResetText(displayUsage.WeeklyResetText)
-                ? "· " + FormatResetText(displayUsage.WeeklyResetText)
+                ? FormatResetText(displayUsage.WeeklyResetText)
                 : String.Empty;
-            string creditsText = "重置券 " + (displayUsage.AvailableResetCredits.HasValue
+            string creditsValue = displayUsage.AvailableResetCredits.HasValue
                 ? displayUsage.AvailableResetCredits.Value.ToString(CultureInfo.InvariantCulture)
-                : "—");
-            string tokenText = (!String.IsNullOrWhiteSpace(displayUsage.ProfileTokensText)
+                : "—";
+            string tokenValue = !String.IsNullOrWhiteSpace(displayUsage.ProfileTokensText)
                 ? displayUsage.ProfileTokensText
-                : "待刷新") + " Token";
+                : "待刷新";
             string radarLabel = GetHeaderRadarLabel(resetRadar);
 
-            Color neutral = Color.FromArgb(255, 34, 68, 96);
-            Color muted = Color.FromArgb(255, 132, 153, 173);
-            Color pink = Color.FromArgb(255, 244, 35, 132);
-            Color purple = Color.FromArgb(255, 126, 31, 246);
-            Color resetBlue = Color.FromArgb(255, 61, 82, 232);
-            Color tokenBlue = Color.FromArgb(255, 24, 119, 232);
-            Color divider = Color.FromArgb(170, 205, 216, 226);
+            Color labelColor = Color.FromArgb(255, 103, 103, 103);
+            Color strongColor = Color.FromArgb(255, 37, 37, 37);
+            Color mutedColor = Color.FromArgb(255, 164, 164, 164);
+            Color dividerColor = Color.FromArgb(205, 211, 211, 211);
+            Color radarColor = Color.FromArgb(255, 174, 174, 174);
+            Color radarDotColor = radarColor;
+            if (resetRadar.Status != ResetRadarStatus.NoSignal)
+            {
+                Color radarFill;
+                Color radarBorder;
+                GetResetRadarColors(resetRadar.Status, out radarFill, out radarBorder, out radarDotColor);
+            }
 
             using (Font normalFont = UiRendering.CreateTextFont(
                 visualSettings.FontName, baseSize, FontStyle.Regular))
             using (Font strongFont = UiRendering.CreateTextFont(
                 visualSettings.FontName, baseSize, FontStyle.Bold))
-            using (Font emphasisFont = UiRendering.CreateTextFont(
-                visualSettings.FontName, emphasisSize, FontStyle.Bold))
-            using (Font iconFont = CreateHeaderIconFont(iconSize))
-            using (Font radarIconFont = new Font(
-                "Segoe MDL2 Assets", Math.Max(16f, baseSize + 8f), FontStyle.Regular, GraphicsUnit.Point))
-            using (Font gearIconFont = CreateHeaderIconFont(Math.Max(11.5f, baseSize + 3f)))
-            using (Brush neutralBrush = new SolidBrush(neutral))
-            using (Brush mutedBrush = new SolidBrush(muted))
-            using (Brush pinkBrush = new SolidBrush(pink))
-            using (Brush purpleBrush = new SolidBrush(purple))
-            using (Brush resetBrush = new SolidBrush(resetBlue))
-            using (Brush tokenBrush = new SolidBrush(tokenBlue))
+            using (Font gearIconFont = CreateHeaderIconFont(Math.Max(9f, baseSize + 1f)))
+            using (Brush labelBrush = new SolidBrush(labelColor))
+            using (Brush strongBrush = new SolidBrush(strongColor))
+            using (Brush mutedBrush = new SolidBrush(mutedColor))
+            using (Brush radarBrush = new SolidBrush(radarColor))
             using (StringFormat near = UiRendering.CreateTextFormat())
             using (StringFormat center = UiRendering.CreateTextFormat())
             {
@@ -721,117 +716,102 @@ namespace CodexUsageOverlay
                 center.LineAlignment = StringAlignment.Center;
                 center.FormatFlags |= StringFormatFlags.NoWrap;
 
-                int circleSize = ScaleHeaderSpacing(20);
-                int iconGap = ScaleHeaderSpacing(5);
-                int textGap = ScaleHeaderSpacing(5);
-                int dividerPadding = ScaleHeaderSpacing(7);
-                int pillGap = ScaleHeaderSpacing(6);
-                int pillPadding = ScaleHeaderSpacing(7);
-                int pillIconWidth = ScaleHeaderSpacing(14);
-                int radarIconWidth = ScaleHeaderSpacing(22);
-                int gearSize = ScaleHeaderSpacing(22);
-                int pillHeight = 20;
+                int textGap = ScaleHeaderSpacing(7);
+                int dividerPadding = ScaleHeaderSpacing(10);
+                int radarDotSize = ScaleHeaderSpacing(5);
+                int radarDotGap = ScaleHeaderSpacing(7);
+                int gearGap = ScaleHeaderSpacing(6);
+                int gearSize = ScaleHeaderSpacing(18);
 
                 int shortLabelWidth = MeasureHeaderText(graphics, shortLabel, normalFont);
-                int shortRemainingWidth = MeasureHeaderText(graphics, shortRemaining, emphasisFont);
+                int shortRemainingWidth = MeasureHeaderText(graphics, shortRemaining, strongFont);
                 int shortResetWidth = MeasureHeaderText(graphics, shortReset, normalFont);
-                int weeklyLabelWidth = MeasureHeaderText(graphics, "本周", normalFont);
-                int weeklyRemainingWidth = MeasureHeaderText(graphics, weeklyRemaining, emphasisFont);
+                int weeklyLabelWidth = MeasureHeaderText(graphics, "周", normalFont);
+                int weeklyRemainingWidth = MeasureHeaderText(graphics, weeklyRemaining, strongFont);
                 int weeklyResetWidth = MeasureHeaderText(graphics, weeklyReset, normalFont);
-                int creditsTextWidth = MeasureHeaderText(graphics, creditsText, strongFont);
-                int tokenTextWidth = MeasureHeaderText(graphics, tokenText, normalFont);
-                int radarTextWidth = MeasureHeaderText(graphics, radarLabel, strongFont);
+                int creditsLabelWidth = MeasureHeaderText(graphics, "重置券", normalFont);
+                int creditsValueWidth = MeasureHeaderText(graphics, creditsValue, strongFont);
+                int tokenLabelWidth = MeasureHeaderText(graphics, "Token", normalFont);
+                int tokenValueWidth = MeasureHeaderText(graphics, tokenValue, strongFont);
+                int radarTextWidth = MeasureHeaderText(graphics, radarLabel, normalFont);
 
-                int shortWidth = circleSize + iconGap + shortLabelWidth + textGap + shortRemainingWidth +
+                int shortWidth = shortLabelWidth + textGap + shortRemainingWidth +
                     (shortResetWidth > 0 ? textGap + shortResetWidth : 0);
-                int weeklyWidth = circleSize + iconGap + weeklyLabelWidth + textGap + weeklyRemainingWidth +
+                int weeklyWidth = weeklyLabelWidth + textGap + weeklyRemainingWidth +
                     (weeklyResetWidth > 0 ? textGap + weeklyResetWidth : 0);
-                int creditsWidth = pillPadding * 2 + pillIconWidth + iconGap + creditsTextWidth;
-                int tokenWidth = pillPadding * 2 + pillIconWidth + iconGap + tokenTextWidth;
-                int radarWidth = radarIconWidth + iconGap + radarTextWidth;
+                int creditsWidth = creditsLabelWidth + textGap + creditsValueWidth;
+                int tokenWidth = tokenLabelWidth + textGap + tokenValueWidth;
+                int radarWidth = radarDotSize + radarDotGap + radarTextWidth;
                 int dividerBlock = dividerPadding * 2 + 1;
                 int contentWidth = shortWidth + dividerBlock + weeklyWidth + dividerBlock + creditsWidth +
-                    pillGap + tokenWidth + dividerBlock + radarWidth + dividerBlock + gearSize;
+                    dividerBlock + tokenWidth + dividerBlock + radarWidth;
                 measuredHeaderContentWidth = contentWidth;
                 int x = OverlayInteraction.GetCenteredContentLeft(
                     canvasWidth, contentWidth, ScaleHeaderSpacing(HeaderRightOffset));
                 int mainStart = x;
 
-                DrawHeaderIconCircle(graphics, new Rectangle(
-                    x, (HeaderHeight - circleSize) / 2, circleSize, circleSize),
-                    "\uE121", iconFont, pink, Color.FromArgb(34, pink.R, pink.G, pink.B), center);
-                x += circleSize + iconGap;
-                x = DrawHeaderText(graphics, shortLabel, normalFont, neutralBrush, near, x, shortLabelWidth);
+                x = DrawHeaderText(graphics, shortLabel, normalFont, labelBrush, near, x, shortLabelWidth);
                 x += textGap;
-                x = DrawHeaderText(graphics, shortRemaining, emphasisFont, pinkBrush, near,
-                    x, shortRemainingWidth, EmphasisTextVerticalOffset);
+                x = DrawHeaderText(graphics, shortRemaining, strongFont, strongBrush, near,
+                    x, shortRemainingWidth);
                 if (shortResetWidth > 0)
                 {
                     x += textGap;
-                    x = DrawHeaderText(graphics, shortReset, normalFont, neutralBrush, near, x, shortResetWidth);
+                    x = DrawHeaderText(graphics, shortReset, normalFont, mutedBrush, near, x, shortResetWidth);
                 }
 
-                x = DrawHeaderDivider(graphics, x, dividerPadding, divider);
+                x = DrawHeaderDivider(graphics, x, dividerPadding, dividerColor);
 
-                DrawHeaderIconCircle(graphics, new Rectangle(
-                    x, (HeaderHeight - circleSize) / 2, circleSize, circleSize),
-                    "\uE787", iconFont, purple, Color.FromArgb(31, purple.R, purple.G, purple.B), center);
-                x += circleSize + iconGap;
-                x = DrawHeaderText(graphics, "本周", normalFont, neutralBrush, near, x, weeklyLabelWidth);
+                x = DrawHeaderText(graphics, "周", normalFont, labelBrush, near, x, weeklyLabelWidth);
                 x += textGap;
-                x = DrawHeaderText(graphics, weeklyRemaining, emphasisFont, purpleBrush, near,
-                    x, weeklyRemainingWidth, EmphasisTextVerticalOffset);
+                x = DrawHeaderText(graphics, weeklyRemaining, strongFont, strongBrush, near,
+                    x, weeklyRemainingWidth);
                 if (weeklyResetWidth > 0)
                 {
                     x += textGap;
-                    x = DrawHeaderText(graphics, weeklyReset, normalFont, neutralBrush, near, x, weeklyResetWidth);
+                    x = DrawHeaderText(graphics, weeklyReset, normalFont, mutedBrush, near, x, weeklyResetWidth);
                 }
 
-                x = DrawHeaderDivider(graphics, x, dividerPadding, divider);
-                x = DrawHeaderPill(graphics, x, creditsWidth, pillHeight, "\uE8EC", creditsText,
-                    iconFont, strongFont, resetBrush, resetBlue,
-                    Color.FromArgb(28, 83, 107, 239), pillPadding, pillIconWidth, iconGap, center, near);
-                x += pillGap;
-                x = DrawHeaderPill(graphics, x, tokenWidth, pillHeight, "\uE8C7", tokenText,
-                    iconFont, normalFont, tokenBrush, tokenBlue,
-                    Color.FromArgb(28, 33, 151, 235), pillPadding, pillIconWidth, iconGap, center, near);
+                x = DrawHeaderDivider(graphics, x, dividerPadding, dividerColor);
+                x = DrawHeaderText(graphics, "重置券", normalFont, labelBrush, near, x, creditsLabelWidth);
+                x += textGap;
+                x = DrawHeaderText(graphics, creditsValue, strongFont, strongBrush, near, x, creditsValueWidth);
+
+                x = DrawHeaderDivider(graphics, x, dividerPadding, dividerColor);
+                x = DrawHeaderText(graphics, "Token", normalFont, labelBrush, near, x, tokenLabelWidth);
+                x += textGap;
+                x = DrawHeaderText(graphics, tokenValue, strongFont, strongBrush, near, x, tokenValueWidth);
                 renderedMainUsageBounds = new Rectangle(
                     mainStart, 1, Math.Max(1, x - mainStart), HeaderHeight - 3);
 
-                x = DrawHeaderDivider(graphics, x, dividerPadding, divider);
+                x = DrawHeaderDivider(graphics, x, dividerPadding, dividerColor);
                 int radarStart = x;
-                Color radarFill;
-                Color radarBorder;
-                Color radarColor;
-                GetResetRadarColors(resetRadar.Status, out radarFill, out radarBorder, out radarColor);
-                if (resetRadar.Status == ResetRadarStatus.NoSignal)
-                    radarColor = Color.FromArgb(255, 72, 101, 124);
                 Rectangle radarBounds = new Rectangle(
                     radarStart - ScaleHeaderSpacing(3), 3,
                     radarWidth + ScaleHeaderSpacing(6), HeaderHeight - 6);
                 if (radarHovered)
                 {
                     using (GraphicsPath hoverPath = RoundedRectangle(radarBounds, 8))
-                    using (Brush hover = new SolidBrush(Color.FromArgb(24, radarColor.R, radarColor.G, radarColor.B)))
+                    using (Brush hover = new SolidBrush(Color.FromArgb(20, 120, 120, 120)))
                         graphics.FillPath(hover, hoverPath);
                 }
-                using (Brush radarBrush = new SolidBrush(radarColor))
-                {
-                    graphics.DrawString("\uE704", radarIconFont, radarBrush,
-                        new Rectangle(x, 0, radarIconWidth, HeaderHeight), center);
-                    x += radarIconWidth + iconGap;
-                    x = DrawHeaderText(graphics, radarLabel, strongFont, radarBrush, near, x, radarTextWidth);
-                }
+                using (Brush radarDotBrush = new SolidBrush(radarDotColor))
+                    graphics.FillEllipse(radarDotBrush, x,
+                        (HeaderHeight - radarDotSize) / 2, radarDotSize, radarDotSize);
+                x += radarDotSize + radarDotGap;
+                x = DrawHeaderText(graphics, radarLabel, normalFont, radarBrush, near, x, radarTextWidth);
                 renderedResetRadarBounds = radarBounds;
 
-                x = DrawHeaderDivider(graphics, x, dividerPadding, divider);
-                Rectangle gearBounds = new Rectangle(x, (HeaderHeight - gearSize) / 2, gearSize, gearSize);
-                Color gearFill = gearPressed
-                    ? Color.FromArgb(86, 87, 111, 132)
-                    : (gearHovered ? Color.FromArgb(58, 87, 111, 132) : Color.FromArgb(29, 113, 139, 162));
-                using (Brush gearBackground = new SolidBrush(gearFill))
-                    graphics.FillEllipse(gearBackground, gearBounds);
-                graphics.DrawString("\uE713", gearIconFont, neutralBrush, gearBounds, center);
+                Rectangle gearBounds = new Rectangle(
+                    x + gearGap, (HeaderHeight - gearSize) / 2, gearSize, gearSize);
+                if (gearHovered || gearPressed || settingsExpanded)
+                {
+                    Color gearColor = gearPressed
+                        ? Color.FromArgb(255, 96, 96, 96)
+                        : Color.FromArgb(255, 170, 170, 170);
+                    using (Brush gearBrush = new SolidBrush(gearColor))
+                        graphics.DrawString("\uE713", gearIconFont, gearBrush, gearBounds, center);
+                }
                 renderedGearBounds = gearBounds;
             }
         }
@@ -871,36 +851,6 @@ namespace CodexUsageOverlay
             using (Pen separator = new Pen(color, 1f))
                 graphics.DrawLine(separator, x, 7, x, HeaderHeight - 7);
             return x + 1 + padding;
-        }
-
-        private static void DrawHeaderIconCircle(Graphics graphics, Rectangle bounds, string glyph,
-            Font iconFont, Color iconColor, Color fillColor, StringFormat center)
-        {
-            using (Brush fill = new SolidBrush(fillColor))
-            using (Brush icon = new SolidBrush(iconColor))
-            {
-                graphics.FillEllipse(fill, bounds);
-                graphics.DrawString(glyph, iconFont, icon, bounds, center);
-            }
-        }
-
-        private static int DrawHeaderPill(Graphics graphics, int x, int width, int height,
-            string glyph, string text, Font iconFont, Font textFont, Brush textBrush, Color iconColor,
-            Color fillColor, int padding, int iconWidth, int gap, StringFormat center, StringFormat near)
-        {
-            Rectangle bounds = new Rectangle(x, (HeaderHeight - height) / 2, width, height);
-            using (GraphicsPath path = RoundedRectangle(bounds, height / 2))
-            using (Brush fill = new SolidBrush(fillColor))
-            using (Brush icon = new SolidBrush(iconColor))
-            {
-                graphics.FillPath(fill, path);
-                graphics.DrawString(glyph, iconFont, icon,
-                    new Rectangle(x + padding, 0, iconWidth, HeaderHeight), center);
-                graphics.DrawString(text, textFont, textBrush,
-                    new Rectangle(x + padding + iconWidth + gap, 0,
-                        width - padding * 2 - iconWidth - gap, HeaderHeight), near);
-            }
-            return x + width;
         }
 
         private static string GetShortWindowLabel(UsageData usage)

@@ -1,47 +1,53 @@
-# Design QA — Percentage baseline and optical right offset
+# Design QA — Plain text usage header
 
-- Source visual truth: `C:\Users\sothing\AppData\Local\Temp\codex-clipboard-760fc74f-adfc-4930-9a2c-7613265f880c.png`
+- Source visual truth: `C:\Users\sothing\AppData\Local\Temp\codex-clipboard-39d6245f-107e-4c3b-a7a9-bad540a8d38c.png`
 - Implementation screenshot: `C:\Users\sothing\Documents\ChatGPT\额度组件\ui-preview\frosted-glass-collapsed.png`
-- Transparency preview: `C:\Users\sothing\Documents\ChatGPT\额度组件\ui-preview\baseline-right-offset-checker.png`
-- Combined focused comparison: `C:\Users\sothing\Documents\ChatGPT\额度组件\ui-preview\baseline-right-offset-comparison.png`
-- Source pixels: 944 × 74; focused title-bar crop: 640 × 33, enlarged to 1440 × 74
-- Implementation pixels: 762 × 30 at the current 9 pt font scale, enlarged to 1440 × 60
-- State: collapsed overlay, no reset signal
+- White-background preview: `C:\Users\sothing\Documents\ChatGPT\额度组件\ui-preview\plain-text-style-white.png`
+- Combined comparison: `C:\Users\sothing\Documents\ChatGPT\额度组件\ui-preview\plain-text-style-comparison.png`
+- Source pixels: 568 × 30
+- Implementation pixels: 720 × 30 at 1× preview density and the configured 8.5 pt font size
+- State: collapsed overlay, no reset signal, representative usage values
 
-## Findings
+## Full-view comparison evidence
 
-### First pass
-
-- P2 — The two large percentage values were geometrically centered in the 30 px header, but their larger font metrics placed their visible baseline slightly below adjacent labels and reset times.
-- P2 — The content group needed a small rightward optical offset relative to its mathematically centered position.
-
-### Fixes
-
-- Applied a dedicated -1 logical-pixel vertical correction to only the short-window and weekly percentage values. Their size, weight, and emphasis hierarchy are unchanged.
-- Applied an 8 logical-pixel right offset to the complete visible content group. The value scales with the user-selected font size.
-- Kept the component window centered and the outer background fully transparent.
-- Added a regression test for the explicit optical right-offset calculation.
-
-### Final pass
-
-- The focused comparison shows the percentage values sharing the visual text line with the surrounding labels and times.
-- At the current 9 pt setting, the rendered alpha bounds have 64 px left and 48 px right margins, confirming the intended 8 px rightward shift from center.
-- No actionable P0, P1, or P2 findings remain.
-
-## Required fidelity surfaces
-
-- Fonts and typography: both percentages retain the larger bold treatment while receiving only the baseline correction requested.
-- Spacing and layout rhythm: internal spacing is unchanged; the entire content group shifts together, preserving all group relationships.
-- Colors and visual tokens: pink, purple, blue, neutral text, and transparent outer treatment are unchanged.
-- Image and icon fidelity: system icon rendering and high-DPI behavior are unchanged.
-- Copy and content: all live usage fields remain in the same order and interaction regions remain mapped to their rendered positions.
+The combined comparison places the 568 × 30 source on a centered 720 × 30 white canvas above the native 720 × 30 implementation. Both show the same five groups in the same order: short-window usage, weekly usage, reset credits, Token total, and radar state. Both use a single text baseline, thin gray separators, bold numeric values, muted reset times, and a gray no-signal dot.
 
 ## Focused-region evidence
 
-The full component is only 30 px tall, so the combined comparison enlarges the user's marked title-bar crop and the revised implementation. This makes the percentage baselines and whole-group horizontal position directly inspectable without changing their proportions.
+The component is only 30 px tall and every glyph is readable at native size in the combined image, so an additional crop would not reveal more fidelity information. The white-background preview verifies the transparent implementation against the light Codex title bar.
+
+## Comparison history
+
+### First pass
+
+- P1: the previous implementation used colored clock/calendar icons, blue utility pills, an oversized radio icon, and large colored percentage values; these contradicted the latest plain-text target.
+- P2: Token copy was value-first, while the target uses `Token` followed by the bold lifetime value.
+- P2: the weekly label used `本周`; the target uses the shorter `周` label.
+
+### Fixes
+
+- Removed the colored icon circles, utility pills, oversized radar glyph, and always-visible settings icon.
+- Unified all header text to the user-selected font size and baseline; only percentages, reset-credit count, and Token value use bold weight.
+- Reordered Token copy, shortened the weekly label, removed reset-time bullet prefixes, and added thin gray separators.
+- Replaced the radar glyph with a small gray dot for the no-signal state while retaining semantic dot colors for live radar states.
+- Preserved the confirmed optical right offset and made the settings gear appear only when its trailing hit area is hovered, pressed, or expanded.
+
+### Final pass
+
+- Information order, typography hierarchy, neutral palette, separators, and transparent surface match the latest reference.
+- The implementation is intentionally slightly denser because it honors the existing 8.5 pt user setting; the source reference renders closer to a larger font setting. This remains user-adjustable rather than hard-coded.
+- Automated rendering and interaction tests pass, and no actionable P0, P1, or P2 findings remain.
+
+## Required fidelity surfaces
+
+- Fonts and typography: one configurable font size and baseline; labels regular, key values bold, times and no-signal state muted.
+- Spacing and layout rhythm: five compact groups separated by identical thin vertical rules; confirmed rightward optical offset retained.
+- Colors and visual tokens: neutral dark gray, muted gray, light gray dividers, and transparent outer surface.
+- Image and icon fidelity: no decorative image assets are required by the selected target; the only normally visible status mark is a rasterized circular dot.
+- Copy and content: `5小时`, `周`, `重置券`, `Token`, and radar state map directly to live data in the target order.
 
 ## Follow-up polish
 
-- P3: the final optical offset is subjective and can be changed in another small increment if the live title-bar composition still feels left-heavy.
+- P3: increasing the user font-size setting can reproduce the looser density of the reference without changing this layout implementation.
 
 final result: passed

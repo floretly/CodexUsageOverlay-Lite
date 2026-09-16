@@ -25,8 +25,8 @@ namespace CodexUsageOverlay
         public static void HeaderContentSupportsOpticalRightOffset()
         {
             int centeredLeft = OverlayInteraction.GetCenteredContentLeft(720, 654);
-            int offsetLeft = OverlayInteraction.GetCenteredContentLeft(720, 654, 8);
-            Assert(offsetLeft - centeredLeft == 8,
+            int offsetLeft = OverlayInteraction.GetCenteredContentLeft(720, 654, 26);
+            Assert(offsetLeft - centeredLeft == 26,
                 "header content did not apply the requested optical right offset");
         }
 
