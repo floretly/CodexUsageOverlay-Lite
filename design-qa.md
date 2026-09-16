@@ -1,8 +1,9 @@
 # Design QA — Plain text usage header
 
 - Source visual truth: `C:\Users\sothing\AppData\Local\Temp\codex-clipboard-39d6245f-107e-4c3b-a7a9-bad540a8d38c.png`
+- User override: keep the settings key permanently visible
 - Implementation screenshot: `C:\Users\sothing\Documents\ChatGPT\额度组件\ui-preview\frosted-glass-collapsed.png`
-- White-background preview: `C:\Users\sothing\Documents\ChatGPT\额度组件\ui-preview\plain-text-style-white.png`
+- White-background preview: `C:\Users\sothing\Documents\ChatGPT\额度组件\ui-preview\plain-text-with-settings-white.png`
 - Combined comparison: `C:\Users\sothing\Documents\ChatGPT\额度组件\ui-preview\plain-text-style-comparison.png`
 - Source pixels: 568 × 30
 - Implementation pixels: 720 × 30 at 1× preview density and the configured 8.5 pt font size
@@ -23,27 +24,29 @@ The component is only 30 px tall and every glyph is readable at native size in t
 - P1: the previous implementation used colored clock/calendar icons, blue utility pills, an oversized radio icon, and large colored percentage values; these contradicted the latest plain-text target.
 - P2: Token copy was value-first, while the target uses `Token` followed by the bold lifetime value.
 - P2: the weekly label used `本周`; the target uses the shorter `周` label.
+- P1: the first plain-text pass hid the settings key until hover, which made a required control undiscoverable.
 
 ### Fixes
 
-- Removed the colored icon circles, utility pills, oversized radar glyph, and always-visible settings icon.
+- Removed the colored icon circles, utility pills, and oversized radar glyph.
 - Unified all header text to the user-selected font size and baseline; only percentages, reset-credit count, and Token value use bold weight.
 - Reordered Token copy, shortened the weekly label, removed reset-time bullet prefixes, and added thin gray separators.
 - Replaced the radar glyph with a small gray dot for the no-signal state while retaining semantic dot colors for live radar states.
-- Preserved the confirmed optical right offset and made the settings gear appear only when its trailing hit area is hovered, pressed, or expanded.
+- Preserved the confirmed optical right offset and restored a permanently visible light-gray settings gear after its own divider.
 
 ### Final pass
 
 - Information order, typography hierarchy, neutral palette, separators, and transparent surface match the latest reference.
+- The settings control is visible at rest, darkens on hover, and retains its existing click target.
 - The implementation is intentionally slightly denser because it honors the existing 8.5 pt user setting; the source reference renders closer to a larger font setting. This remains user-adjustable rather than hard-coded.
 - Automated rendering and interaction tests pass, and no actionable P0, P1, or P2 findings remain.
 
 ## Required fidelity surfaces
 
 - Fonts and typography: one configurable font size and baseline; labels regular, key values bold, times and no-signal state muted.
-- Spacing and layout rhythm: five compact groups separated by identical thin vertical rules; confirmed rightward optical offset retained.
+- Spacing and layout rhythm: five compact data groups plus the settings control, separated by identical thin vertical rules; confirmed rightward optical offset retained.
 - Colors and visual tokens: neutral dark gray, muted gray, light gray dividers, and transparent outer surface.
-- Image and icon fidelity: no decorative image assets are required by the selected target; the only normally visible status mark is a rasterized circular dot.
+- Image and icon fidelity: no decorative image assets are required; the status dot and Windows-native settings glyph remain crisp at high DPI.
 - Copy and content: `5小时`, `周`, `重置券`, `Token`, and radar state map directly to live data in the target order.
 
 ## Follow-up polish

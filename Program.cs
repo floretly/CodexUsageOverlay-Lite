@@ -720,7 +720,6 @@ namespace CodexUsageOverlay
                 int dividerPadding = ScaleHeaderSpacing(10);
                 int radarDotSize = ScaleHeaderSpacing(5);
                 int radarDotGap = ScaleHeaderSpacing(7);
-                int gearGap = ScaleHeaderSpacing(6);
                 int gearSize = ScaleHeaderSpacing(18);
 
                 int shortLabelWidth = MeasureHeaderText(graphics, shortLabel, normalFont);
@@ -744,7 +743,7 @@ namespace CodexUsageOverlay
                 int radarWidth = radarDotSize + radarDotGap + radarTextWidth;
                 int dividerBlock = dividerPadding * 2 + 1;
                 int contentWidth = shortWidth + dividerBlock + weeklyWidth + dividerBlock + creditsWidth +
-                    dividerBlock + tokenWidth + dividerBlock + radarWidth;
+                    dividerBlock + tokenWidth + dividerBlock + radarWidth + dividerBlock + gearSize;
                 measuredHeaderContentWidth = contentWidth;
                 int x = OverlayInteraction.GetCenteredContentLeft(
                     canvasWidth, contentWidth, ScaleHeaderSpacing(HeaderRightOffset));
@@ -802,16 +801,15 @@ namespace CodexUsageOverlay
                 x = DrawHeaderText(graphics, radarLabel, normalFont, radarBrush, near, x, radarTextWidth);
                 renderedResetRadarBounds = radarBounds;
 
-                Rectangle gearBounds = new Rectangle(
-                    x + gearGap, (HeaderHeight - gearSize) / 2, gearSize, gearSize);
-                if (gearHovered || gearPressed || settingsExpanded)
-                {
-                    Color gearColor = gearPressed
-                        ? Color.FromArgb(255, 96, 96, 96)
-                        : Color.FromArgb(255, 170, 170, 170);
-                    using (Brush gearBrush = new SolidBrush(gearColor))
-                        graphics.DrawString("\uE713", gearIconFont, gearBrush, gearBounds, center);
-                }
+                x = DrawHeaderDivider(graphics, x, dividerPadding, dividerColor);
+                Rectangle gearBounds = new Rectangle(x, (HeaderHeight - gearSize) / 2, gearSize, gearSize);
+                Color gearColor = gearPressed
+                    ? Color.FromArgb(255, 86, 86, 86)
+                    : (gearHovered || settingsExpanded
+                        ? Color.FromArgb(255, 126, 126, 126)
+                        : Color.FromArgb(255, 174, 174, 174));
+                using (Brush gearBrush = new SolidBrush(gearColor))
+                    graphics.DrawString("\uE713", gearIconFont, gearBrush, gearBounds, center);
                 renderedGearBounds = gearBounds;
             }
         }
