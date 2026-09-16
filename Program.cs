@@ -684,27 +684,29 @@ namespace CodexUsageOverlay
                 : "待刷新";
             string radarLabel = GetHeaderRadarLabel(resetRadar);
 
-            Color labelColor = Color.FromArgb(255, 103, 103, 103);
-            Color strongColor = Color.FromArgb(255, 37, 37, 37);
-            Color mutedColor = Color.FromArgb(255, 164, 164, 164);
-            Color dividerColor = Color.FromArgb(205, 211, 211, 211);
-            Color radarColor = Color.FromArgb(255, 174, 174, 174);
-            Color radarDotColor = radarColor;
-            if (resetRadar.Status != ResetRadarStatus.NoSignal)
-            {
-                Color radarFill;
-                Color radarBorder;
-                GetResetRadarColors(resetRadar.Status, out radarFill, out radarBorder, out radarDotColor);
-            }
+            Color neutral = Color.FromArgb(255, 34, 68, 96);
+            Color pink = Color.FromArgb(255, 244, 35, 132);
+            Color purple = Color.FromArgb(255, 126, 31, 246);
+            Color resetBlue = Color.FromArgb(255, 61, 82, 232);
+            Color tokenBlue = Color.FromArgb(255, 24, 119, 232);
+            Color dividerColor = Color.FromArgb(170, 205, 216, 226);
+            Color radarFill;
+            Color radarBorder;
+            Color radarColor;
+            GetResetRadarColors(resetRadar.Status, out radarFill, out radarBorder, out radarColor);
+            if (resetRadar.Status == ResetRadarStatus.NoSignal)
+                radarColor = Color.FromArgb(255, 72, 101, 124);
 
             using (Font normalFont = UiRendering.CreateTextFont(
                 visualSettings.FontName, baseSize, FontStyle.Regular))
             using (Font strongFont = UiRendering.CreateTextFont(
                 visualSettings.FontName, baseSize, FontStyle.Bold))
             using (Font gearIconFont = CreateHeaderIconFont(Math.Max(9f, baseSize + 1f)))
-            using (Brush labelBrush = new SolidBrush(labelColor))
-            using (Brush strongBrush = new SolidBrush(strongColor))
-            using (Brush mutedBrush = new SolidBrush(mutedColor))
+            using (Brush neutralBrush = new SolidBrush(neutral))
+            using (Brush pinkBrush = new SolidBrush(pink))
+            using (Brush purpleBrush = new SolidBrush(purple))
+            using (Brush resetBrush = new SolidBrush(resetBlue))
+            using (Brush tokenBrush = new SolidBrush(tokenBlue))
             using (Brush radarBrush = new SolidBrush(radarColor))
             using (StringFormat near = UiRendering.CreateTextFormat())
             using (StringFormat center = UiRendering.CreateTextFormat())
@@ -749,37 +751,37 @@ namespace CodexUsageOverlay
                     canvasWidth, contentWidth, ScaleHeaderSpacing(HeaderRightOffset));
                 int mainStart = x;
 
-                x = DrawHeaderText(graphics, shortLabel, normalFont, labelBrush, near, x, shortLabelWidth);
+                x = DrawHeaderText(graphics, shortLabel, normalFont, neutralBrush, near, x, shortLabelWidth);
                 x += textGap;
-                x = DrawHeaderText(graphics, shortRemaining, strongFont, strongBrush, near,
+                x = DrawHeaderText(graphics, shortRemaining, strongFont, pinkBrush, near,
                     x, shortRemainingWidth);
                 if (shortResetWidth > 0)
                 {
                     x += textGap;
-                    x = DrawHeaderText(graphics, shortReset, normalFont, mutedBrush, near, x, shortResetWidth);
+                    x = DrawHeaderText(graphics, shortReset, normalFont, neutralBrush, near, x, shortResetWidth);
                 }
 
                 x = DrawHeaderDivider(graphics, x, dividerPadding, dividerColor);
 
-                x = DrawHeaderText(graphics, "周", normalFont, labelBrush, near, x, weeklyLabelWidth);
+                x = DrawHeaderText(graphics, "周", normalFont, neutralBrush, near, x, weeklyLabelWidth);
                 x += textGap;
-                x = DrawHeaderText(graphics, weeklyRemaining, strongFont, strongBrush, near,
+                x = DrawHeaderText(graphics, weeklyRemaining, strongFont, purpleBrush, near,
                     x, weeklyRemainingWidth);
                 if (weeklyResetWidth > 0)
                 {
                     x += textGap;
-                    x = DrawHeaderText(graphics, weeklyReset, normalFont, mutedBrush, near, x, weeklyResetWidth);
+                    x = DrawHeaderText(graphics, weeklyReset, normalFont, neutralBrush, near, x, weeklyResetWidth);
                 }
 
                 x = DrawHeaderDivider(graphics, x, dividerPadding, dividerColor);
-                x = DrawHeaderText(graphics, "重置券", normalFont, labelBrush, near, x, creditsLabelWidth);
+                x = DrawHeaderText(graphics, "重置券", normalFont, resetBrush, near, x, creditsLabelWidth);
                 x += textGap;
-                x = DrawHeaderText(graphics, creditsValue, strongFont, strongBrush, near, x, creditsValueWidth);
+                x = DrawHeaderText(graphics, creditsValue, strongFont, resetBrush, near, x, creditsValueWidth);
 
                 x = DrawHeaderDivider(graphics, x, dividerPadding, dividerColor);
-                x = DrawHeaderText(graphics, "Token", normalFont, labelBrush, near, x, tokenLabelWidth);
+                x = DrawHeaderText(graphics, "Token", normalFont, tokenBrush, near, x, tokenLabelWidth);
                 x += textGap;
-                x = DrawHeaderText(graphics, tokenValue, strongFont, strongBrush, near, x, tokenValueWidth);
+                x = DrawHeaderText(graphics, tokenValue, strongFont, tokenBrush, near, x, tokenValueWidth);
                 renderedMainUsageBounds = new Rectangle(
                     mainStart, 1, Math.Max(1, x - mainStart), HeaderHeight - 3);
 
@@ -794,7 +796,7 @@ namespace CodexUsageOverlay
                     using (Brush hover = new SolidBrush(Color.FromArgb(20, 120, 120, 120)))
                         graphics.FillPath(hover, hoverPath);
                 }
-                using (Brush radarDotBrush = new SolidBrush(radarDotColor))
+                using (Brush radarDotBrush = new SolidBrush(radarColor))
                     graphics.FillEllipse(radarDotBrush, x,
                         (HeaderHeight - radarDotSize) / 2, radarDotSize, radarDotSize);
                 x += radarDotSize + radarDotGap;
@@ -804,10 +806,10 @@ namespace CodexUsageOverlay
                 x = DrawHeaderDivider(graphics, x, dividerPadding, dividerColor);
                 Rectangle gearBounds = new Rectangle(x, (HeaderHeight - gearSize) / 2, gearSize, gearSize);
                 Color gearColor = gearPressed
-                    ? Color.FromArgb(255, 86, 86, 86)
+                    ? Color.FromArgb(255, 21, 47, 69)
                     : (gearHovered || settingsExpanded
-                        ? Color.FromArgb(255, 126, 126, 126)
-                        : Color.FromArgb(255, 174, 174, 174));
+                        ? Color.FromArgb(255, 30, 61, 86)
+                        : neutral);
                 using (Brush gearBrush = new SolidBrush(gearColor))
                     graphics.DrawString("\uE713", gearIconFont, gearBrush, gearBounds, center);
                 renderedGearBounds = gearBounds;
